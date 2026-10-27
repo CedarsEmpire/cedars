@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vercel dev",
-    "build": "prisma generate && tsc --noEmit",
+    "build": "prisma generate && tsc --noEmit && node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:deploy": "prisma migrate deploy",
