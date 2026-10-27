@@ -1,0 +1,950 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f5f1">
+  <title>CEDARS OS | Command Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #18251f;
+      --muted: #748078;
+      --line: #e2e7e1;
+      --paper: #f3f5f1;
+      --surface: #fff;
+      --rail: #17241e;
+      --rail-muted: #a3b2a9;
+      --green: #237b58;
+      --green-soft: #e6f3eb;
+      --orange: #d66a45;
+      --orange-soft: #fff0e9;
+      --blue: #387c8a;
+      --blue-soft: #e9f4f5;
+      --red: #bd4d43;
+      --shadow: 0 1px 2px rgb(24 37 31 / 4%), 0 8px 24px rgb(24 37 31 / 3%);
+      font-family: "DM Sans", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image: linear-gradient(rgb(32 57 43 / 2%) 1px, transparent 1px), linear-gradient(90deg, rgb(32 57 43 / 2%) 1px, transparent 1px);
+      background-size: 32px 32px;
+      min-height: 100vh;
+    }
+    button { font: inherit; }
+    button:focus-visible, a:focus-visible { outline: 3px solid #e8a455; outline-offset: 3px; }
+    .app-shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
+    .sidebar {
+      background: var(--rail);
+      color: #f7faf7;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      padding: 26px 15px 18px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 10px 26px; }
+    .brand-mark {
+      width: 35px;
+      height: 35px;
+      background: #d8efdf;
+      border-radius: 10px 10px 10px 3px;
+      color: var(--rail);
+      display: grid;
+      place-items: center;
+      font: 700 17px "Space Grotesk", sans-serif;
+      transform: rotate(-4deg);
+    }
+    .brand-name { font: 700 17px "Space Grotesk", sans-serif; letter-spacing: 0; }
+    .brand-sub { color: var(--rail-muted); font-size: 10px; letter-spacing: 1.1px; margin-top: 3px; }
+    .nav-caption { color: #7f9286; font-size: 10px; font-weight: 700; letter-spacing: 1.4px; padding: 13px 12px 8px; }
+    .nav-list { display: grid; gap: 4px; }
+    .nav-item {
+      align-items: center;
+      background: transparent;
+      border: 0;
+      border-radius: 6px;
+      color: #bdc9c1;
+      cursor: pointer;
+      display: flex;
+      gap: 12px;
+      min-height: 42px;
+      padding: 0 12px;
+      text-align: left;
+      transition: background .18s ease, color .18s ease;
+      width: 100%;
+    }
+    .nav-item:hover { background: rgb(255 255 255 / 7%); color: white; }
+    .nav-item[aria-current="page"] { background: #263c30; color: #fff; box-shadow: inset 3px 0 #75bf8f; }
+    .nav-glyph { color: #90b69b; font-size: 12px; font-weight: 700; width: 17px; text-align: center; }
+    .nav-label { font-size: 13px; font-weight: 500; }
+    .nav-count { color: #a7b5ab; font-size: 11px; margin-left: auto; }
+    .sidebar-spacer { flex: 1; }
+    .system-note { border-top: 1px solid rgb(255 255 255 / 10%); margin-top: 15px; padding: 17px 11px 0; }
+    .system-note strong { display: block; font-size: 11px; margin-bottom: 5px; }
+    .system-note span { color: var(--rail-muted); font-size: 11px; line-height: 1.55; }
+    .online-dot { background: #80c896; border-radius: 50%; display: inline-block; height: 7px; margin-right: 6px; width: 7px; }
+
+    .workspace { min-width: 0; }
+    .topbar {
+      align-items: center;
+      background: rgb(255 255 255 / 88%);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      min-height: 68px;
+      padding: 0 34px;
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      backdrop-filter: blur(14px);
+    }
+    .crumb { color: var(--muted); font-size: 12px; }
+    .crumb b { color: var(--ink); font-weight: 600; }
+    .top-actions { align-items: center; display: flex; gap: 12px; }
+    .role-control { align-items: center; color: #78847c; display: flex; font-size: 9px; font-weight: 700; gap: 7px; letter-spacing: .7px; }
+    .role-control select { background: white; border: 1px solid var(--line); border-radius: 4px; color: var(--ink); font: 600 11px "DM Sans", sans-serif; min-height: 32px; padding: 0 25px 0 8px; }
+    .prototype-tag { align-items: center; background: #fff1e8; border: 1px solid #f4d8c8; border-radius: 4px; color: #9c4a2d; display: inline-flex; font-size: 10px; font-weight: 700; gap: 7px; letter-spacing: .7px; padding: 7px 9px; }
+    .prototype-tag::before { background: var(--orange); border-radius: 50%; content: ""; height: 6px; width: 6px; }
+    .export-button, .quiet-button, .primary-button {
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      cursor: pointer;
+      display: inline-flex;
+      font-size: 12px;
+      font-weight: 600;
+      gap: 8px;
+      justify-content: center;
+      min-height: 36px;
+      padding: 0 12px;
+      transition: background .15s ease, border-color .15s ease;
+    }
+    .export-button, .quiet-button { background: white; color: var(--ink); }
+    .export-button:hover, .quiet-button:hover { background: #f8faf8; border-color: #bcc9bf; }
+    .primary-button { background: var(--green); border-color: var(--green); color: white; }
+    .primary-button:hover { background: #1c684a; }
+    .main-content { margin: 0 auto; max-width: 1500px; padding: 30px 34px 54px; }
+    .page-heading { align-items: flex-end; display: flex; justify-content: space-between; margin-bottom: 22px; }
+    .eyebrow { color: var(--green); font-size: 10px; font-weight: 700; letter-spacing: 1.45px; margin-bottom: 8px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font: 600 30px/1.1 "Space Grotesk", sans-serif; letter-spacing: 0; margin-bottom: 7px; }
+    .page-description { color: var(--muted); font-size: 13px; margin-bottom: 0; }
+    .date-label { color: var(--muted); font-size: 11px; padding-bottom: 3px; }
+    .notice {
+      align-items: center;
+      background: #fff8f1;
+      border: 1px solid #f2dfca;
+      border-left: 3px solid var(--orange);
+      border-radius: 4px;
+      color: #694b37;
+      display: flex;
+      font-size: 12px;
+      gap: 10px;
+      line-height: 1.45;
+      margin-bottom: 20px;
+      padding: 11px 14px;
+    }
+    .notice strong { color: #533a29; }
+    .notice-mark { align-items: center; border: 1px solid #d99a68; border-radius: 50%; color: #ae6235; display: inline-flex; flex: 0 0 18px; font-size: 11px; font-weight: 700; height: 18px; justify-content: center; }
+    .section-label { align-items: center; color: #536159; display: flex; font-size: 10px; font-weight: 700; justify-content: space-between; letter-spacing: 1.2px; margin: 27px 0 11px; text-transform: uppercase; }
+    .section-label span:last-child { color: #929e96; font-size: 10px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+    .metric-grid { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .metric {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      box-shadow: var(--shadow);
+      min-height: 119px;
+      padding: 15px 17px;
+    }
+    .metric-top { align-items: center; color: #68766e; display: flex; font-size: 11px; justify-content: space-between; }
+    .metric-badge { align-items: center; background: var(--green-soft); border-radius: 4px; color: var(--green); display: inline-flex; font-size: 9px; font-weight: 700; height: 21px; justify-content: center; min-width: 28px; padding: 0 5px; }
+    .metric-value { font: 600 26px/1.15 "Space Grotesk", sans-serif; margin: 12px 0 5px; }
+    .metric-foot { color: #89958e; font-size: 10px; }
+    .content-grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1.7fr) minmax(270px, 1fr); }
+    .panel { background: white; border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); min-width: 0; }
+    .panel-header { align-items: center; border-bottom: 1px solid #edf0ed; display: flex; justify-content: space-between; min-height: 56px; padding: 0 17px; }
+    .panel-title { font: 600 14px "Space Grotesk", sans-serif; margin: 0; }
+    .panel-meta { color: #849087; font-size: 10px; }
+    .chart-wrap { padding: 14px 17px 10px; }
+    .chart-legend { align-items: center; color: #67756c; display: flex; font-size: 10px; gap: 8px; margin-bottom: 17px; }
+    .legend-dot { background: var(--green); border-radius: 50%; height: 7px; width: 7px; }
+    .chart-bars { align-items: flex-end; border-bottom: 1px solid #dfe6e0; display: flex; gap: 12px; height: 144px; justify-content: space-around; padding: 0 3px; position: relative; }
+    .chart-bars::before, .chart-bars::after { border-top: 1px dashed #edf0ed; content: ""; left: 0; position: absolute; right: 0; }
+    .chart-bars::before { top: 33%; }
+    .chart-bars::after { top: 66%; }
+    .chart-column { align-items: center; display: flex; flex: 1; height: 100%; justify-content: flex-end; position: relative; z-index: 1; }
+    .chart-bar { background: linear-gradient(180deg, #72b68a, #a9d2b5); border-radius: 3px 3px 0 0; min-height: 8px; transition: height .25s ease; width: min(31px, 75%); }
+    .chart-column:nth-child(3n) .chart-bar { background: linear-gradient(180deg, #de956d, #f0c3a9); }
+    .chart-labels { color: #8d9991; display: flex; font-size: 9px; justify-content: space-around; padding-top: 8px; }
+    .activity-list { display: grid; padding: 2px 17px 8px; }
+    .activity-row { align-items: flex-start; border-bottom: 1px solid #edf0ed; display: flex; gap: 11px; padding: 13px 0; }
+    .activity-row:last-child { border-bottom: 0; }
+    .activity-mark { background: var(--blue-soft); border-radius: 4px; color: var(--blue); flex: 0 0 27px; font-size: 10px; font-weight: 700; height: 27px; line-height: 27px; text-align: center; }
+    .activity-copy { font-size: 11px; line-height: 1.5; }
+    .activity-copy strong { display: block; font-weight: 600; }
+    .activity-copy span { color: #89958d; font-size: 10px; }
+    .quick-grid { display: grid; gap: 9px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .quick-link { background: white; border: 1px solid var(--line); border-radius: 5px; color: var(--ink); cursor: pointer; min-height: 76px; padding: 13px 14px; text-align: left; transition: border-color .15s ease, transform .15s ease; }
+    .quick-link:hover { border-color: #9ab6a2; transform: translateY(-1px); }
+    .quick-link strong { display: block; font-size: 12px; margin-bottom: 5px; }
+    .quick-link span { color: var(--muted); font-size: 10px; }
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; min-width: 600px; width: 100%; }
+    th { background: #fafbfa; color: #7f8b83; font-size: 9px; font-weight: 700; letter-spacing: .7px; text-align: left; text-transform: uppercase; }
+    th, td { border-bottom: 1px solid #edf0ed; padding: 12px 15px; }
+    td { font-size: 11px; vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .module-name { font-size: 12px; font-weight: 600; }
+    .module-group { color: #89958d; font-size: 10px; margin-top: 3px; }
+    .health { align-items: center; color: #536159; display: inline-flex; font-size: 10px; gap: 6px; }
+    .health::before { background: #8aa994; border-radius: 50%; content: ""; height: 6px; width: 6px; }
+    .health.off::before { background: #c6cec8; }
+    .switch {
+      background: #ccd4ce;
+      border: 0;
+      border-radius: 99px;
+      cursor: pointer;
+      height: 22px;
+      padding: 3px;
+      transition: background .18s ease;
+      width: 39px;
+    }
+    .switch::after { background: white; border-radius: 50%; content: ""; display: block; height: 16px; transition: transform .18s ease; width: 16px; }
+    .switch[aria-checked="true"] { background: var(--green); }
+    .switch[aria-checked="true"]::after { transform: translateX(17px); }
+    .switch:disabled { cursor: not-allowed; opacity: .5; }
+    .status-pill { border-radius: 3px; display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: .4px; padding: 5px 7px; text-transform: uppercase; }
+    .status-running { background: var(--green-soft); color: var(--green); }
+    .status-ready { background: var(--blue-soft); color: var(--blue); }
+    .status-paused { background: #f1f2ed; color: #777e63; }
+    .status-stopped { background: #f9eae8; color: var(--red); }
+    .row-actions { display: flex; gap: 5px; white-space: nowrap; }
+    .mini-button { background: white; border: 1px solid var(--line); border-radius: 4px; color: #3d4c43; cursor: pointer; font-size: 10px; min-height: 27px; padding: 0 8px; }
+    .mini-button:hover { background: #f5f8f5; }
+    .mini-button:disabled { cursor: not-allowed; opacity: .45; }
+    .mini-button.danger { color: var(--red); }
+    .worker-name { align-items: center; display: flex; gap: 9px; }
+    .worker-avatar { align-items: center; background: #eaf0e9; border-radius: 5px; color: #4b6654; display: inline-flex; flex: 0 0 29px; font: 600 11px "Space Grotesk", sans-serif; height: 29px; justify-content: center; }
+    .worker-name strong { display: block; font-size: 11px; }
+    .worker-name small { color: #89958d; display: block; font-size: 9px; margin-top: 2px; }
+    .callout { background: #f7f9f6; border: 1px solid #e7ece7; border-radius: 5px; color: #57645b; font-size: 11px; line-height: 1.55; padding: 12px 14px; }
+    .callout strong { color: var(--ink); }
+    .callout.warning { background: #fff8f1; border-color: #f2dfca; color: #694b37; }
+    .split-panels { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .list-rows { padding: 0 16px; }
+    .list-row { align-items: center; border-bottom: 1px solid #edf0ed; display: flex; gap: 12px; justify-content: space-between; min-height: 54px; }
+    .list-row:last-child { border-bottom: 0; }
+    .list-row strong { display: block; font-size: 11px; font-weight: 600; }
+    .list-row small { color: #87938b; display: block; font-size: 10px; margin-top: 3px; }
+    .value-muted { color: #8a968e; font-size: 11px; }
+    .gate-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .gate { background: white; border: 1px solid var(--line); border-radius: 5px; padding: 14px; }
+    .gate-head { align-items: center; display: flex; gap: 8px; margin-bottom: 7px; }
+    .gate-check { align-items: center; border: 1px solid #c8d2ca; border-radius: 50%; color: var(--green); display: inline-flex; flex: 0 0 18px; font-size: 10px; height: 18px; justify-content: center; }
+    .gate strong { font-size: 11px; }
+    .gate p { color: #748078; font-size: 10px; line-height: 1.45; margin: 0; }
+    .roadmap { display: grid; gap: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .roadmap-item { border-left: 1px solid #dce5dd; padding: 3px 16px 21px; position: relative; }
+    .roadmap-item::before { background: var(--green); border: 3px solid #e4efe6; border-radius: 50%; content: ""; height: 9px; left: -7px; position: absolute; top: 0; width: 9px; }
+    .roadmap-year { color: var(--green); font-size: 9px; font-weight: 700; letter-spacing: .6px; }
+    .roadmap-item h3 { font: 600 13px "Space Grotesk", sans-serif; margin: 6px 0; }
+    .roadmap-item p { color: #78847c; font-size: 10px; line-height: 1.5; margin: 0; }
+    .toast { background: #1e3026; border-radius: 5px; bottom: 22px; box-shadow: 0 8px 30px rgb(0 0 0 / 18%); color: white; font-size: 12px; max-width: min(420px, calc(100vw - 32px)); opacity: 0; padding: 12px 16px; pointer-events: none; position: fixed; right: 22px; transform: translateY(8px); transition: opacity .2s ease, transform .2s ease; z-index: 8; }
+    .toast.visible { opacity: 1; transform: translateY(0); }
+    .empty-note { color: #86928a; font-size: 11px; padding: 24px 17px; text-align: center; }
+    .footnote { color: #929d95; font-size: 10px; line-height: 1.5; margin: 13px 0 0; }
+    .form-grid { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 17px; }
+    .field { display: grid; gap: 6px; }
+    .field label { color: #57645b; font-size: 10px; font-weight: 600; }
+    .field input, .field select, .field textarea { background: #fff; border: 1px solid #dfe6e0; border-radius: 4px; color: var(--ink); font: 500 12px "DM Sans", sans-serif; min-height: 37px; padding: 8px 10px; width: 100%; }
+    .field textarea { min-height: 72px; resize: vertical; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: #78a989; outline: 2px solid rgb(83 148 105 / 15%); }
+    .form-footer { align-items: center; display: flex; gap: 12px; grid-column: 1 / -1; }
+    .form-hint { color: #829087; font-size: 10px; line-height: 1.45; }
+    .result-grid { display: grid; gap: 10px; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 15px 17px; }
+    .result-item { background: #f7f9f6; border: 1px solid #e8ede8; border-radius: 4px; min-height: 75px; padding: 11px; }
+    .result-item span { color: #738078; display: block; font-size: 9px; line-height: 1.4; }
+    .result-item strong { display: block; font: 600 18px "Space Grotesk", sans-serif; margin-top: 6px; }
+    .privacy-note { background: #f7f6ef; border: 1px solid #ece8d6; border-radius: 4px; color: #625e47; font-size: 10px; line-height: 1.5; padding: 10px 12px; }
+    .privacy-note strong { color: #49452f; }
+    .ticket-id { color: #7a887f; font: 600 10px "Space Grotesk", sans-serif; }
+    .status-open { background: #fff0e9; color: #9c4a2d; }
+    .status-resolved { background: var(--green-soft); color: var(--green); }
+    .role-matrix td:first-child { font-weight: 600; }
+    .role-matrix td { color: #59665d; font-size: 10px; }
+    .role-matrix .allowed { color: var(--green); font-weight: 700; }
+    .role-matrix .denied { color: #a1aaa3; }
+    .nav-item[hidden] { display: none; }
+    .hidden { display: none !important; }
+    @media (max-width: 1050px) {
+      .app-shell { grid-template-columns: 218px minmax(0, 1fr); }
+      .topbar, .main-content { padding-left: 24px; padding-right: 24px; }
+      .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      .app-shell { display: block; }
+      .sidebar { height: auto; min-height: 0; padding: 14px 14px 9px; position: relative; }
+      .brand { padding: 0 2px 12px; }
+      .nav-caption, .sidebar-spacer, .system-note { display: none; }
+      .nav-list { display: flex; gap: 5px; overflow-x: auto; padding: 0 0 4px; scrollbar-width: thin; }
+      .nav-item { flex: 0 0 auto; min-height: 35px; padding: 0 10px; width: auto; }
+      .nav-item[aria-current="page"] { box-shadow: inset 0 -2px #75bf8f; }
+      .nav-glyph { display: none; }
+      .nav-label { font-size: 11px; }
+      .nav-count { display: none; }
+      .topbar { min-height: 54px; padding: 0 16px; position: relative; }
+      .main-content { padding: 23px 16px 40px; }
+      .page-heading { align-items: flex-start; flex-direction: column; gap: 10px; }
+      .page-heading h1 { font-size: 26px; }
+      .date-label { display: none; }
+      .content-grid, .split-panels { grid-template-columns: 1fr; }
+      .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .roadmap { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .top-actions { gap: 7px; }
+      .prototype-tag { font-size: 9px; padding: 6px 7px; }
+      .role-control { font-size: 0; }
+      .role-control select { font-size: 10px; }
+      .export-button { font-size: 0; min-width: 36px; padding: 0 9px; }
+      .export-button::before { content: "CSV"; font-size: 10px; }
+    }
+    @media (max-width: 430px) {
+      .metric-grid { gap: 8px; }
+      .metric { min-height: 108px; padding: 12px; }
+      .metric-value { font-size: 23px; }
+      .quick-grid, .gate-grid { grid-template-columns: 1fr; }
+      .form-grid, .result-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .roadmap { grid-template-columns: 1fr; }
+      .notice { align-items: flex-start; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Main navigation">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">C</div>
+        <div><div class="brand-name">CEDARS OS</div><div class="brand-sub">HUMANITY GRID</div></div>
+      </div>
+      <div class="nav-caption">WORKSPACE</div>
+      <nav class="nav-list" aria-label="Workspace">
+        <button class="nav-item" data-view="overview" aria-current="page"><span class="nav-glyph">O</span><span class="nav-label">Overview</span></button>
+        <button class="nav-item" data-view="grids"><span class="nav-glyph">G</span><span class="nav-label">Grid Management</span><span class="nav-count">7</span></button>
+        <button class="nav-item" data-view="workers"><span class="nav-glyph">AI</span><span class="nav-label">AI Workers</span></button>
+        <button class="nav-item" data-view="wallet"><span class="nav-glyph">W</span><span class="nav-label">Wallet Center</span></button>
+        <button class="nav-item" data-view="ledger"><span class="nav-glyph">L</span><span class="nav-label">Ledger Center</span></button>
+        <button class="nav-item" data-view="analytics"><span class="nav-glyph">A</span><span class="nav-label">Analytics</span></button>
+        <button class="nav-item" data-view="reserves"><span class="nav-glyph">R</span><span class="nav-label">Reserve Test</span></button>
+        <button class="nav-item" data-view="support"><span class="nav-glyph">S</span><span class="nav-label">Robot Support</span></button>
+      </nav>
+      <div class="nav-caption">OPERATIONS</div>
+      <nav class="nav-list" aria-label="Operations">
+        <button class="nav-item" data-view="governance"><span class="nav-glyph">✓</span><span class="nav-label">Governance</span></button>
+        <button class="nav-item" data-view="audit"><span class="nav-glyph">≡</span><span class="nav-label">Audit Trail</span></button>
+      </nav>
+      <div class="sidebar-spacer"></div>
+      <div class="system-note"><strong><span class="online-dot"></span>Prototype environment</strong><span>No production services are connected. All switches and figures are local demonstrations.</span></div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <div class="crumb">CEDARS OS <span aria-hidden="true">/</span> <b id="breadcrumb">Command Center</b></div>
+        <div class="top-actions">
+          <span class="prototype-tag">SIMULATED DATA</span>
+          <label class="role-control">DEMO ROLE
+            <select id="roleSelect" aria-label="Select a demo role">
+              <option value="FOUNDER">Founder</option>
+              <option value="SUPER_ADMIN">Super Admin</option>
+              <option value="INVESTOR">Investor</option>
+              <option value="PARTNER">Partner</option>
+              <option value="AI_WORKER">AI Worker</option>
+            </select>
+          </label>
+          <button class="export-button" id="exportCsv" type="button" title="Download illustrative metrics as CSV">Download CSV</button>
+        </div>
+      </header>
+      <main class="main-content" id="mainContent" tabindex="-1"></main>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const modules = [
+      { id: "money-grid", name: "Money Grid", group: "Foundation", on: true },
+      { id: "wallet", name: "Wallet Grid", group: "Foundation", on: true },
+      { id: "ledger", name: "Ledger Grid", group: "Foundation", on: true },
+      { id: "ai-iq", name: "AI IQ Grid", group: "AI & workers", on: true },
+      { id: "sales-ai", name: "Sales AI", group: "AI & workers", on: true },
+      { id: "opportunity-ai", name: "Opportunity Discovery AI", group: "AI & workers", on: true },
+      { id: "support", name: "Robot Support Grid", group: "AI & workers", on: false },
+      { id: "healthcare", name: "Healthcare AI", group: "Human services", on: false },
+      { id: "education", name: "Education AI", group: "Human services", on: false },
+      { id: "contribution", name: "Contribution Grid", group: "Intelligence", on: false },
+      { id: "memory", name: "Collective Memory", group: "Intelligence", on: false },
+      { id: "innovation", name: "Innovation Dome", group: "Innovation", on: false },
+      { id: "simulation", name: "Simulation Grid", group: "Innovation", on: false },
+      { id: "ai-twins", name: "AI Twins", group: "Future experience", on: false },
+      { id: "synthetic-reality", name: "Synthetic Reality", group: "Future experience", on: false },
+      { id: "blockchain", name: "Blockchain Trust Layer", group: "Trust", on: false },
+      { id: "collective-intelligence", name: "Collective Intelligence", group: "Intelligence", on: false }
+    ];
+    const workers = [
+      { id: "sales", name: "Sales AI", role: "Lead qualification · CRM", status: "RUNNING", scale: 2, module: "sales-ai" },
+      { id: "research", name: "Research AI", role: "Discovery · synthesis", status: "READY", scale: 1, module: "ai-iq" },
+      { id: "health", name: "Healthcare AI", role: "Administrative support", status: "STOPPED", scale: 1, module: "healthcare" },
+      { id: "opportunity", name: "Opportunity AI", role: "Demand · capacity matching", status: "RUNNING", scale: 3, module: "opportunity-ai" },
+      { id: "support", name: "Support AI", role: "Ticket triage · metadata only", status: "STOPPED", scale: 1, module: "support" }
+    ];
+    const auditEntries = [];
+    const supportTickets = [
+      { id: "SUP-1042", topic: "Wallet access question", priority: "Normal", status: "Open", sensitivity: "Internal" },
+      { id: "SUP-1041", topic: "Payment reconciliation review", priority: "High", status: "Escalated", sensitivity: "Confidential" },
+      { id: "SUP-1039", topic: "Account settings", priority: "Normal", status: "Resolved", sensitivity: "Internal" }
+    ];
+    const roleLabels = { FOUNDER: "Founder", SUPER_ADMIN: "Super Admin", INVESTOR: "Investor", PARTNER: "Partner", AI_WORKER: "AI Worker" };
+    const viewTitles = {
+      overview: "Command Center", grids: "Grid Management", workers: "AI Workers",
+      wallet: "Wallet Center", ledger: "Ledger Center", analytics: "Analytics", reserves: "Reserve Stress Test",
+      support: "Robot Support", governance: "Governance", audit: "Audit Trail"
+    };
+    const navGlyphs = { wallet: "W", ledger: "L", "ai-iq": "IQ", "sales-ai": "S", healthcare: "H", education: "E", innovation: "D", "opportunity-ai": "O", support: "S" };
+    const mainContent = document.getElementById("mainContent");
+    let activeView = "overview";
+    let activeRole = "FOUNDER";
+    let toastTimer;
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => toast.classList.remove("visible"), 3000);
+    }
+
+    function heading(title, description, eyebrow = "CONTROL CENTER") {
+      return `<div class="page-heading"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p class="page-description">${description}</p></div><div class="date-label">Strategic design · Prototype</div></div>`;
+    }
+
+    function notice(text) {
+      return `<div class="notice"><span class="notice-mark" aria-hidden="true">!</span><span>${text}</span></div>`;
+    }
+
+    function canManagePlatform() {
+      return activeRole === "FOUNDER" || activeRole === "SUPER_ADMIN";
+    }
+
+    function canView(view) {
+      if (canManagePlatform()) return true;
+      if (activeRole === "INVESTOR") return ["overview", "wallet", "ledger", "analytics", "reserves"].includes(view);
+      if (activeRole === "PARTNER") return ["overview", "analytics", "reserves"].includes(view);
+      if (activeRole === "AI_WORKER") return ["overview", "workers", "support"].includes(view);
+      return false;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+      })[character]);
+    }
+
+    function logAction(action, entity, detail) {
+      auditEntries.unshift({
+        actor: roleLabels[activeRole], action, entity, detail,
+        timestamp: new Date().toLocaleString()
+      });
+    }
+
+    function moduleRows() {
+      return modules.map((module) => `<tr>
+        <td><div class="module-name">${module.name}</div><div class="module-group">${module.group}</div></td>
+        <td><span class="health ${module.on ? "" : "off"}">${module.on ? "Ready · demo" : "Disabled"}</span></td>
+        <td><button class="switch" type="button" role="switch" aria-checked="${module.on}" aria-label="${module.on ? "Disable" : "Enable"} ${module.name}" data-toggle-module="${module.id}" ${canManagePlatform() ? "" : "disabled"}></button></td>
+      </tr>`).join("");
+    }
+
+    function workerRows() {
+      return workers.map((worker) => {
+        const statusClass = `status-${worker.status.toLowerCase()}`;
+        const primary = worker.status === "RUNNING" ? "Pause" : "Start";
+        return `<tr>
+          <td><div class="worker-name"><span class="worker-avatar">${navGlyphs[worker.module]}</span><span><strong>${worker.name}</strong><small>${worker.role}</small></span></div></td>
+          <td><span class="status-pill ${statusClass}">${worker.status}</span></td>
+          <td>${worker.scale} ${worker.scale === 1 ? "instance" : "instances"}</td>
+          <td><div class="row-actions"><button class="mini-button" type="button" data-worker-action="${primary.toLowerCase()}" data-worker="${worker.id}" ${canManagePlatform() ? "" : "disabled"}>${primary}</button><button class="mini-button" type="button" data-worker-action="scale" data-worker="${worker.id}" ${canManagePlatform() ? "" : "disabled"}>Scale +1</button><button class="mini-button danger" type="button" data-worker-action="shutdown" data-worker="${worker.id}" ${canManagePlatform() ? "" : "disabled"}>Shutdown</button></div></td>
+        </tr>`;
+      }).join("");
+    }
+
+    function overviewView() {
+      return `${heading("Command Center", "A single view of modules, work, settlement and human-progress signals.")}
+        ${notice("<strong>Design prototype.</strong> Metrics, module states and worker controls are illustrative. No live payment, identity, or AI services are connected.")}
+        <div class="section-label">Platform signals <span>Sample values · not production data</span></div>
+        <div class="metric-grid">
+          <article class="metric"><div class="metric-top">Verified revenue <span class="metric-badge">DEMO</span></div><div class="metric-value">$24,860</div><div class="metric-foot">Illustrative settled payments</div></article>
+          <article class="metric"><div class="metric-top">Wallet volume <span class="metric-badge">DEMO</span></div><div class="metric-value">$81,240</div><div class="metric-foot">Sample ledger balance view</div></article>
+          <article class="metric"><div class="metric-top">Jobs completed <span class="metric-badge">DEMO</span></div><div class="metric-value">148</div><div class="metric-foot">Accepted, billable work</div></article>
+          <article class="metric"><div class="metric-top">Payment exceptions <span class="metric-badge">DEMO</span></div><div class="metric-value">03</div><div class="metric-foot">Illustrative unmatched items</div></article>
+        </div>
+        <div class="section-label">Operations <span>Sample activity · last 7 days</span></div>
+        <div class="content-grid">
+          <section class="panel" aria-labelledby="activity-chart-title">
+            <div class="panel-header"><h2 class="panel-title" id="activity-chart-title">Verified settlement activity</h2><span class="panel-meta">Illustrative units</span></div>
+            <div class="chart-wrap"><div class="chart-legend"><span class="legend-dot"></span>Reconciled service payments</div>
+              <div class="chart-bars" role="img" aria-label="Illustrative seven-day settlement activity chart">
+                <div class="chart-column"><span class="chart-bar" style="height:34%"></span></div><div class="chart-column"><span class="chart-bar" style="height:51%"></span></div><div class="chart-column"><span class="chart-bar" style="height:42%"></span></div><div class="chart-column"><span class="chart-bar" style="height:70%"></span></div><div class="chart-column"><span class="chart-bar" style="height:58%"></span></div><div class="chart-column"><span class="chart-bar" style="height:83%"></span></div><div class="chart-column"><span class="chart-bar" style="height:66%"></span></div>
+              </div><div class="chart-labels"><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span></div>
+            </div>
+          </section>
+          <section class="panel" aria-labelledby="recent-activity-title">
+            <div class="panel-header"><h2 class="panel-title" id="recent-activity-title">Activity log</h2><span class="panel-meta">Sample events</span></div>
+            <div class="activity-list">
+              <div class="activity-row"><span class="activity-mark">OK</span><div class="activity-copy"><strong>Service payment reconciled</strong><span>Demo record · 12 min ago</span></div></div>
+              <div class="activity-row"><span class="activity-mark">AI</span><div class="activity-copy"><strong>Opportunity matched to provider</strong><span>Demo event · 48 min ago</span></div></div>
+              <div class="activity-row"><span class="activity-mark">!</span><div class="activity-copy"><strong>Payment exception requires review</strong><span>Demo record · 2 hours ago</span></div></div>
+            </div>
+          </section>
+        </div>
+        <div class="section-label">Go to <span>Modules do not connect to live systems</span></div>
+        <div class="quick-grid">
+          <button class="quick-link" data-go="grids"><strong>Grid Management</strong><span>Module states and readiness</span></button>
+          <button class="quick-link" data-go="workers"><strong>AI Worker Control</strong><span>Start, pause, scale, or stop</span></button>
+          <button class="quick-link" data-go="wallet"><strong>Wallet Center</strong><span>Activation gates and draft terms</span></button>
+          <button class="quick-link" data-go="reserves"><strong>Reserve Stress Test</strong><span>Model a revenue decline</span></button>
+          <button class="quick-link" data-go="support"><strong>Robot Support</strong><span>Review the demo ticket queue</span></button>
+        </div>`;
+    }
+
+    function gridsView() {
+      return `${heading("Grid Management", "Modular services share security, data and operations while remaining independently controlled.", "MODULE CATALOG")}
+        ${notice(`<strong>Local demo switches only.</strong> Signed in as ${roleLabels[activeRole]}. In the proposed architecture, disabled modules deny access and stop jobs; this prototype has no backend authorization or connected jobs.`)}
+        <section class="panel"><div class="panel-header"><h2 class="panel-title">Module catalog</h2><span class="panel-meta">${modules.filter((item) => item.on).length} of ${modules.length} enabled in demo</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Module</th><th>Readiness</th><th>Demo switch</th></tr></thead><tbody>${moduleRows()}</tbody></table></div>
+        </section>
+        <div class="section-label">Shared core <span>Proposed platform architecture</span></div>
+        <div class="split-panels">
+          <section class="panel"><div class="panel-header"><h2 class="panel-title">Platform services</h2><span class="panel-meta">Not connected</span></div><div class="list-rows">
+            <div class="list-row"><span><strong>Authentication & roles</strong><small>Identity, access, permissions</small></span><span class="status-pill status-paused">Planned</span></div>
+            <div class="list-row"><span><strong>Audit & notifications</strong><small>Traceable actions and alerts</small></span><span class="status-pill status-paused">Planned</span></div>
+            <div class="list-row"><span><strong>Settings & API</strong><small>Configuration and integrations</small></span><span class="status-pill status-paused">Planned</span></div>
+          </div></section>
+          <section class="panel"><div class="panel-header"><h2 class="panel-title">Activation principles</h2><span class="panel-meta">Readiness gates</span></div><div class="list-rows">
+            <div class="list-row"><span><strong>Health checks</strong><small>Required even when a module is ON</small></span><span class="value-muted">Required</span></div>
+            <div class="list-row"><span><strong>Role-based access</strong><small>Authorized admins manage switches</small></span><span class="value-muted">Demo only</span></div>
+            <div class="list-row"><span><strong>Financial module activation</strong><small>Requires a second authorized approver</small></span><span class="value-muted">Blocked in demo</span></div>
+            <div class="list-row"><span><strong>Rollback & audit</strong><small>Keep changes attributable</small></span><span class="value-muted">Required</span></div>
+          </div></section>
+        </div>`;
+    }
+
+    function workersView() {
+      return `${heading("AI Worker Control", "AI can execute assigned workflows; people retain ownership, approval and emergency control.", "AI & WORKERS")}
+        ${notice("<strong>Simulation only.</strong> Start, pause, scale and shutdown actions change this page's local demo state only. No agents, jobs, or compute are controlled.")}
+        <section class="panel"><div class="panel-header"><h2 class="panel-title">Worker registry</h2><span class="panel-meta">${workers.filter((worker) => worker.status === "RUNNING").length} running · sample roster</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Worker</th><th>State</th><th>Scale</th><th>Demo controls</th></tr></thead><tbody>${workerRows()}</tbody></table></div>
+        </section>
+        <div class="section-label">Operating safeguards <span>Required before deployment</span></div>
+        <div class="split-panels">
+          <section class="panel"><div class="panel-header"><h2 class="panel-title">Human sovereignty</h2></div><div class="list-rows">
+            <div class="list-row"><span><strong>Approval policy</strong><small>Human permission before consequential actions</small></span><span class="status-pill status-paused">Not configured</span></div>
+            <div class="list-row"><span><strong>Escalation & incident response</strong><small>Route failures and high-risk work to people</small></span><span class="status-pill status-paused">Not configured</span></div>
+            <div class="list-row"><span><strong>Emergency kill switch</strong><small>Tested stop path with named owner</small></span><span class="status-pill status-paused">Not configured</span></div>
+          </div></section>
+          <section class="panel"><div class="panel-header"><h2 class="panel-title">Unit economics</h2><span class="panel-meta">Concept only</span></div><div class="list-rows">
+            <div class="list-row"><span><strong>Verified attributable revenue</strong><small>Accepted work and reconciled payment</small></span><span class="value-muted">Required</span></div>
+            <div class="list-row"><span><strong>Operating costs</strong><small>Compute, tools, providers, fees, support</small></span><span class="value-muted">Required</span></div>
+            <div class="list-row"><span><strong>Net contribution</strong><small>Revenue less attributable operating costs</small></span><span class="value-muted">Not measured</span></div>
+          </div></section>
+        </div>`;
+    }
+
+    function walletView() {
+      return `${heading("Wallet Center", "Financial rails need clear accounting, verified funding, liquidity and controls before activation.", "MONEY GRID")}
+        ${notice("<strong>Not connected. Do not send funds.</strong> No wallet, payment processor, chain, address, balance or transaction feature is active in this prototype.")}
+        <div class="metric-grid">
+          <article class="metric"><div class="metric-top">Live wallet balance <span class="metric-badge">OFFLINE</span></div><div class="metric-value">—</div><div class="metric-foot">Connect a verified ledger to report</div></article>
+          <article class="metric"><div class="metric-top">Payment volume <span class="metric-badge">OFFLINE</span></div><div class="metric-value">—</div><div class="metric-foot">No payment data connected</div></article>
+          <article class="metric"><div class="metric-top">Pending withdrawals <span class="metric-badge">OFFLINE</span></div><div class="metric-value">—</div><div class="metric-foot">No withdrawal workflow exists</div></article>
+          <article class="metric"><div class="metric-top">Treasury reconciliation <span class="metric-badge">OFFLINE</span></div><div class="metric-value">—</div><div class="metric-foot">No treasury feed connected</div></article>
+        </div>
+        <div class="section-label">Activation gates <span>Required before any real-money feature</span></div>
+        <div class="gate-grid">
+          <article class="gate"><div class="gate-head"><span class="gate-check">!</span><strong>Legal & regulatory review</strong></div><p>Confirm jurisdiction, licensing, consumer protections, tax and disclosure obligations.</p></article>
+          <article class="gate"><div class="gate-head"><span class="gate-check">!</span><strong>Funding & liquidity model</strong></div><p>Model cumulative obligations, reserves, restricted funds and downside scenarios.</p></article>
+          <article class="gate"><div class="gate-head"><span class="gate-check">!</span><strong>Verified treasury ownership</strong></div><p>Independently verify addresses, contracts, chain, custody and signing authority.</p></article>
+          <article class="gate"><div class="gate-head"><span class="gate-check">!</span><strong>Reconciliation & fraud controls</strong></div><p>Define transaction confirmation, limits, exceptions, monitoring and audit trails.</p></article>
+        </div>
+        <div class="section-label">Draft source terms <span>Unvalidated · inactive</span></div>
+        <section class="panel"><div class="list-rows">
+          <div class="list-row"><span><strong>Proposed reward</strong><small>Draft input only; funding model unspecified</small></span><span class="value-muted">≥1% per 27 hours · 1,095 days</span></div>
+          <div class="list-row"><span><strong>Proposed withdrawal fee</strong><small>Basis and legal treatment undefined</small></span><span class="value-muted">20% draft</span></div>
+          <div class="list-row"><span><strong>Proposed P2P fee</strong><small>Fee basis undefined</small></span><span class="value-muted">20% draft</span></div>
+        </div></section>
+        <p class="footnote">These draft terms are not validated, implemented, or an offer of financial return. Deposits are not revenue; no return is guaranteed. Planning wallet addresses from source material are intentionally omitted because they are explicitly unverified.</p>`;
+    }
+
+    function ledgerView() {
+      return `${heading("Ledger Center", "Keep financial settlement separate from provenance for learning, contribution and impact.", "TRUST & SETTLEMENT")}
+        ${notice("<strong>Sample records only.</strong> No balances, payments, identities or contribution claims shown here are real or independently verified.")}
+        <div class="split-panels">
+          <section class="panel"><div class="panel-header"><h2 class="panel-title">Financial ledger</h2><span class="panel-meta">Double-entry model · not connected</span></div><div class="list-rows">
+            <div class="list-row"><span><strong>Revenue recognition</strong><small>Accepted deliverable and reconciled payment</small></span><span class="status-pill status-paused">Proposed</span></div>
+            <div class="list-row"><span><strong>Customer balances</strong><small>Separate from earned income</small></span><span class="status-pill status-paused">Proposed</span></div>
+            <div class="list-row"><span><strong>Reserves & refunds</strong><small>Restricted funds remain distinct</small></span><span class="status-pill status-paused">Proposed</span></div>
+          </div></section>
+          <section class="panel"><div class="panel-header"><h2 class="panel-title">Contribution provenance</h2><span class="panel-meta">Privacy controls required</span></div><div class="list-rows">
+            <div class="list-row"><span><strong>Evidence & attribution</strong><small>Source, timestamp, permissions</small></span><span class="status-pill status-paused">Proposed</span></div>
+            <div class="list-row"><span><strong>Review & appeals</strong><small>Human review; transparent criteria</small></span><span class="status-pill status-paused">Proposed</span></div>
+            <div class="list-row"><span><strong>Export & deletion</strong><small>User access and retention controls</small></span><span class="status-pill status-paused">Proposed</span></div>
+          </div></section>
+        </div>
+        <div class="section-label">Illustrative reconciliation flow <span>No transaction is being processed</span></div>
+        <div class="panel"><div class="list-rows">
+          <div class="list-row"><span><strong>1. Real buyer</strong><small>Identity and authorization confirmed</small></span><span class="value-muted">Required evidence</span></div>
+          <div class="list-row"><span><strong>2. Delivered service</strong><small>Defined scope and acceptance evidence</small></span><span class="value-muted">Required evidence</span></div>
+          <div class="list-row"><span><strong>3. Verified payment</strong><small>Recipient, amount and transaction reconciled</small></span><span class="value-muted">Required evidence</span></div>
+          <div class="list-row"><span><strong>4. Auditable ledger entry</strong><small>Unique reference, source system and timestamp</small></span><span class="value-muted">Required evidence</span></div>
+        </div></div>
+        <p class="footnote">A screenshot or AI decision alone is not sufficient proof for credit or payout. Financial records and contribution scoring should remain distinct and appealable.</p>`;
+    }
+
+    function analyticsView() {
+      return `${heading("Analytics", "Measure real work and evidence-backed progress, not projections or activity scores alone.", "MEASUREMENT")}
+        ${notice("<strong>Human Progress Index is a concept.</strong> All example values are illustrative; every production metric should link to its source, timestamp and auditable evidence.")}
+        <div class="section-label">Command metrics <span>Sample values from the concept dashboard</span></div>
+        <div class="metric-grid">
+          <article class="metric"><div class="metric-top">Knowledge preserved <span class="metric-badge">DEMO</span></div><div class="metric-value">2,406</div><div class="metric-foot">Reusable assets · illustrative</div></article>
+          <article class="metric"><div class="metric-top">Innovation deployed <span class="metric-badge">DEMO</span></div><div class="metric-value">18</div><div class="metric-foot">Tested solutions in use · illustrative</div></article>
+          <article class="metric"><div class="metric-top">Cost per completed job <span class="metric-badge">DEMO</span></div><div class="metric-value">$12.40</div><div class="metric-foot">Compute + provider + fees</div></article>
+          <article class="metric"><div class="metric-top">Cross-sector collaboration <span class="metric-badge">DEMO</span></div><div class="metric-value">73</div><div class="metric-foot">Contributions · illustrative</div></article>
+        </div>
+        <div class="section-label">Human Progress Index <span>Evidence and source links are not connected</span></div>
+        <section class="panel"><div class="list-rows">
+          <div class="list-row"><span><strong>Knowledge created & preserved</strong><small>Verified, reusable learning assets</small></span><span class="status-pill status-paused">No source</span></div>
+          <div class="list-row"><span><strong>Problems solved</strong><small>Measured outcomes with community context</small></span><span class="status-pill status-paused">No source</span></div>
+          <div class="list-row"><span><strong>Innovations deployed</strong><small>Tested solutions with evidence of use</small></span><span class="status-pill status-paused">No source</span></div>
+          <div class="list-row"><span><strong>Lives & outcomes improved</strong><small>Consent-based, independently evaluated impact</small></span><span class="status-pill status-paused">No source</span></div>
+        </div></section>
+        <p class="footnote">Success means opportunities converted into accepted work and reconciled revenue, alongside independently evaluated human outcomes—not AI scores, deposits, or projections alone.</p>`;
+    }
+
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount);
+    }
+
+    function reserveView() {
+      const revenue = 10000000;
+      const costs = 4000000;
+      const reserve = 240000000;
+      const decline = 80;
+      const stressedRevenue = revenue * (1 - decline / 100);
+      const netResult = stressedRevenue - costs;
+      const reserveAfter = Math.max(0, reserve + netResult);
+      const monthlyBurn = Math.max(0, costs - stressedRevenue);
+      const runway = monthlyBurn ? `${(reserveAfter / monthlyBurn).toFixed(1)} months` : "No modeled burn";
+      const reserveTarget = costs * 12;
+      return `${heading("Reserve Stress Test", "Explore a simplified business cash-flow scenario using explicit inputs and assumptions.", "SIMULATION TOOL")}
+        ${notice("<strong>Illustrative arithmetic only.</strong> This is not a forecast, liquidity assessment, solvency opinion, or distribution recommendation. It excludes taxes, restrictions, timing, liabilities and many real-world costs.")}
+        <section class="panel"><div class="panel-header"><h2 class="panel-title">Scenario inputs</h2><span class="panel-meta">USD · monthly values</span></div>
+          <div class="form-grid">
+            <div class="field"><label for="reserveRevenue">Monthly revenue</label><input id="reserveRevenue" data-reserve-input="revenue" type="number" min="0" step="1000" value="${revenue}"></div>
+            <div class="field"><label for="reserveCosts">Monthly operating costs</label><input id="reserveCosts" data-reserve-input="costs" type="number" min="0" step="1000" value="${costs}"></div>
+            <div class="field"><label for="reserveBalance">Current reserve balance</label><input id="reserveBalance" data-reserve-input="reserve" type="number" min="0" step="1000" value="${reserve}"></div>
+            <div class="field"><label for="revenueDecline">Revenue decline (%)</label><input id="revenueDecline" data-reserve-input="decline" type="number" min="0" max="100" step="5" value="${decline}"></div>
+            <div class="form-footer"><span class="form-hint">Stress case: revenue changes while costs remain constant. Positive net result adds to reserves; losses draw them down.</span></div>
+          </div>
+        </section>
+        <div class="section-label">Scenario results <span>Recalculated locally as inputs change</span></div>
+        <section class="panel"><div class="result-grid" id="stressResults" aria-live="polite">
+          <div class="result-item"><span>Revenue after decline</span><strong>${formatCurrency(stressedRevenue)}</strong></div>
+          <div class="result-item"><span>Monthly net result</span><strong>${formatCurrency(netResult)}</strong></div>
+          <div class="result-item"><span>Reserve after one month</span><strong>${formatCurrency(reserveAfter)}</strong></div>
+          <div class="result-item"><span>Runway at modeled burn</span><strong>${runway}</strong></div>
+          <div class="result-item"><span>12-month cost threshold</span><strong>${formatCurrency(reserveTarget)}</strong></div>
+          <div class="result-item"><span>Threshold status</span><strong>${reserveAfter >= reserveTarget ? "Above" : "Below"}</strong></div>
+        </div></section>
+        <p class="footnote">The 12-month threshold is an example policy from the source material, not a validated reserve standard. All values reset when the page reloads.</p>`;
+    }
+
+    function supportView() {
+      const rows = supportTickets.map((ticket) => `<tr>
+        <td><span class="ticket-id">${escapeHtml(ticket.id)}</span></td>
+        <td>${escapeHtml(ticket.topic)}</td>
+        <td>${escapeHtml(ticket.priority)}</td>
+        <td><span class="status-pill ${ticket.status === "Resolved" ? "status-resolved" : ticket.status === "Escalated" ? "status-stopped" : "status-open"}">${escapeHtml(ticket.status)}</span></td>
+        <td>${escapeHtml(ticket.sensitivity)}</td>
+        <td>${ticket.status === "Resolved" ? "—" : `<button class="mini-button" type="button" data-ticket-resolve="${escapeHtml(ticket.id)}" ${canManagePlatform() ? "" : "disabled"}>Mark resolved</button>`}</td>
+      </tr>`).join("");
+      return `${heading("Robot Support", "A human-governed support queue concept with explicit escalation and sensitive-data boundaries.", "SUPPORT GRID")}
+        ${notice("<strong>No support AI or document service is connected.</strong> Ticket creation is local demo state; no request is sent and no automated resolution occurs.")}
+        <div class="privacy-note"><strong>Document safety:</strong> Do not select or enter medical records, identity documents, financial statements, contracts, or other sensitive material. The demo reads file metadata only, does not inspect contents, and never uploads files.</div>
+        <div class="section-label">Create a demo ticket <span>Visible in this browser session only</span></div>
+        <section class="panel"><form id="ticketForm" class="form-grid">
+          <div class="field" style="grid-column: span 2"><label for="ticketSubject">Issue summary</label><input id="ticketSubject" name="subject" maxlength="120" required placeholder="Describe a non-sensitive support question"></div>
+          <div class="field"><label for="ticketPriority">Priority</label><select id="ticketPriority" name="priority"><option>Normal</option><option>High</option><option>Low</option></select></div>
+          <div class="field" style="grid-column: 1 / -1"><label for="supportFiles">Optional sample attachment metadata</label><input id="supportFiles" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" multiple><span class="form-hint" id="fileMetadata">Files are not uploaded or opened. Use only non-sensitive sample files.</span></div>
+          <div class="form-footer"><button class="primary-button" type="submit">Create demo ticket</button><span class="form-hint">No account data or document contents are stored.</span></div>
+        </form></section>
+        <div class="section-label">Ticket queue <span>${supportTickets.length} illustrative records</span></div>
+        <section class="panel"><div class="table-wrap"><table><thead><tr><th>Ticket</th><th>Topic</th><th>Priority</th><th>Status</th><th>Sensitivity</th><th>Demo action</th></tr></thead><tbody>${rows}</tbody></table></div></section>
+        <p class="footnote">Production document intake would need server-side authorization, malware scanning, encryption, retention limits, access logging, and a reviewed data-protection policy before implementation.</p>`;
+    }
+
+    function auditView() {
+      const rows = auditEntries.slice(0, 50).map((entry) => `<tr>
+        <td>${escapeHtml(entry.timestamp)}</td><td>${escapeHtml(entry.actor)}</td><td><strong>${escapeHtml(entry.action)}</strong></td><td>${escapeHtml(entry.entity)}</td><td>${escapeHtml(entry.detail)}</td>
+      </tr>`).join("");
+      return `${heading("Audit Trail", "Review actions taken during this browser session. These entries are not durable or tamper-resistant.", "LOCAL DEMO LOG")}
+        ${notice("<strong>Not a security audit log.</strong> Events exist only in page memory, can be lost on refresh, and are not authenticated, signed, or stored on a server.")}
+        <section class="panel"><div class="panel-header"><h2 class="panel-title">Recent demo actions</h2><span class="panel-meta">${auditEntries.length} local events · newest first</span></div>
+          ${rows ? `<div class="table-wrap"><table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Entity</th><th>Detail</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<div class="empty-note">No actions yet. Try a module or worker control to create a sample event.</div>`}
+        </section>`;
+    }
+
+    function governanceView() {
+      return `${heading("Governance", "Scale depends on accountable ownership, privacy, safety and fair attribution—not technology alone.", "PEOPLE & TRUST")}
+        ${notice("<strong>Proposed controls.</strong> No identity, permissions, policy engine, scoring system or data vault is implemented in this prototype.")}
+        <div class="section-label">Principles & controls <span>Design requirements</span></div>
+        <div class="split-panels">
+          <section class="panel"><div class="panel-header"><h2 class="panel-title">Human agency</h2><span class="panel-meta">Ownership & decision rights</span></div><div class="list-rows">
+            <div class="list-row"><span><strong>Human override</strong><small>No irreversible action without permission</small></span><span class="value-muted">Required</span></div>
+            <div class="list-row"><span><strong>Consent & disclosure</strong><small>Disclose AI Twins and data use</small></span><span class="value-muted">Required</span></div>
+            <div class="list-row"><span><strong>Appeals</strong><small>Human review for scores and decisions</small></span><span class="value-muted">Required</span></div>
+          </div></section>
+          <section class="panel"><div class="panel-header"><h2 class="panel-title">Data rights</h2><span class="panel-meta">Privacy & portability</span></div><div class="list-rows">
+            <div class="list-row"><span><strong>Visible, editable memory</strong><small>User can inspect and correct their AI Twin</small></span><span class="value-muted">Required</span></div>
+            <div class="list-row"><span><strong>Export & deletion</strong><small>Portable data and clear retention rules</small></span><span class="value-muted">Required</span></div>
+            <div class="list-row"><span><strong>Data minimization</strong><small>Encryption and purpose limitation</small></span><span class="value-muted">Required</span></div>
+          </div></section>
+          <section class="panel"><div class="panel-header"><h2 class="panel-title">Trust & attribution</h2><span class="panel-meta">Evidence quality</span></div><div class="list-rows">
+            <div class="list-row"><span><strong>Auditable evidence</strong><small>Source, time, provenance and permissions</small></span><span class="value-muted">Required</span></div>
+            <div class="list-row"><span><strong>Anti-gaming safeguards</strong><small>Multi-party verification and audit trails</small></span><span class="value-muted">Required</span></div>
+            <div class="list-row"><span><strong>Fair contribution rules</strong><small>Transparent criteria and appeal rights</small></span><span class="value-muted">Required</span></div>
+          </div></section>
+          <section class="panel"><div class="panel-header"><h2 class="panel-title">High-risk deployment</h2><span class="panel-meta">Sector-specific review</span></div><div class="list-rows">
+            <div class="list-row"><span><strong>Healthcare & education</strong><small>Licensed partners and qualified oversight</small></span><span class="value-muted">Gate</span></div>
+            <div class="list-row"><span><strong>Safety evaluation</strong><small>Test failure modes before deployment</small></span><span class="value-muted">Gate</span></div>
+            <div class="list-row"><span><strong>Independent accountability</strong><small>Audits, regional voice and transparency</small></span><span class="value-muted">Gate</span></div>
+          </div></section>
+        </div>
+        <div class="section-label">Prototype rights matrix <span>Demonstration only · server-side checks are required</span></div>
+        <section class="panel"><div class="table-wrap"><table class="role-matrix"><thead><tr><th>Action</th><th>Founder</th><th>Investor</th><th>Partner</th><th>AI Worker</th></tr></thead><tbody>
+          <tr><td>Enable / disable module</td><td class="allowed">Allowed</td><td class="denied">No</td><td class="denied">No</td><td class="denied">No</td></tr>
+          <tr><td>Manage AI workers</td><td class="allowed">Allowed</td><td class="denied">No</td><td class="denied">No</td><td class="denied">No</td></tr>
+          <tr><td>View financial overview</td><td class="allowed">Allowed</td><td class="allowed">Allowed</td><td class="denied">No</td><td class="denied">No</td></tr>
+          <tr><td>View analytics</td><td class="allowed">Allowed</td><td class="allowed">Allowed</td><td class="allowed">Allowed</td><td class="denied">No</td></tr>
+          <tr><td>Execute assigned tasks</td><td class="denied">No</td><td class="denied">No</td><td class="denied">No</td><td class="allowed">Assigned only</td></tr>
+        </tbody></table></div></section>
+        <div class="section-label">Strategic roadmap <span>Proposal from source vision, not a delivery commitment</span></div>
+        <section class="panel"><div class="panel-header"><h2 class="panel-title">Prove the foundation, then expand</h2><span class="panel-meta">Illustrative sequence</span></div><div class="roadmap" style="padding:20px 18px 0">
+          <article class="roadmap-item"><span class="roadmap-year">YEARS 1–2</span><h3>Collective Memory MVP</h3><p>Capture, tag, search and preserve useful knowledge assets.</p></article>
+          <article class="roadmap-item"><span class="roadmap-year">YEARS 2–3</span><h3>Proof of Contribution</h3><p>Transparent evidence, attribution, review and appeals.</p></article>
+          <article class="roadmap-item"><span class="roadmap-year">YEARS 3–4</span><h3>AI Discovery Engine</h3><p>Connect ideas and recommend testable opportunities.</p></article>
+          <article class="roadmap-item"><span class="roadmap-year">YEARS 4–6</span><h3>Innovation Dome</h3><p>Expert networks, simulations and controlled pilots.</p></article>
+          <article class="roadmap-item"><span class="roadmap-year">YEARS 6–8</span><h3>AI Twins</h3><p>Permission-based personal memory and collaboration.</p></article>
+          <article class="roadmap-item"><span class="roadmap-year">YEARS 8–10</span><h3>Cedars World</h3><p>Immersive global collaboration workspace.</p></article>
+        </div></section>`;
+    }
+
+    const viewRenderers = {
+      overview: overviewView, grids: gridsView, workers: workersView,
+      wallet: walletView, ledger: ledgerView, analytics: analyticsView, reserves: reserveView,
+      support: supportView, governance: governanceView, audit: auditView
+    };
+
+    function render() {
+      mainContent.innerHTML = viewRenderers[activeView]();
+      document.getElementById("breadcrumb").textContent = viewTitles[activeView];
+      document.querySelectorAll(".nav-item").forEach((item) => {
+        item.hidden = !canView(item.dataset.view);
+        if (item.dataset.view === activeView) item.setAttribute("aria-current", "page");
+        else item.removeAttribute("aria-current");
+      });
+      document.querySelector("[data-view='grids'] .nav-count").textContent = modules.length;
+      document.getElementById("roleSelect").value = activeRole;
+    }
+
+    function setView(view) {
+      if (!viewRenderers[view]) return;
+      if (!canView(view)) {
+        showToast(`${roleLabels[activeRole]} demo role does not have access to ${viewTitles[view]}.`);
+        return;
+      }
+      activeView = view;
+      render();
+      mainContent.focus({ preventScroll: true });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    document.addEventListener("click", (event) => {
+      const nav = event.target.closest("[data-view]");
+      if (nav) { setView(nav.dataset.view); return; }
+      const quickLink = event.target.closest("[data-go]");
+      if (quickLink) { setView(quickLink.dataset.go); return; }
+
+      const moduleSwitch = event.target.closest("[data-toggle-module]");
+      if (moduleSwitch) {
+        const module = modules.find((item) => item.id === moduleSwitch.dataset.toggleModule);
+        if (!module) return;
+        if (!canManagePlatform()) {
+          showToast("This demo role cannot manage modules.");
+          return;
+        }
+        if (!module.on && ["money-grid", "wallet", "ledger"].includes(module.id)) {
+          showToast("Financial modules require a second authorized approver; this prototype cannot record dual approval.");
+          return;
+        }
+        module.on = !module.on;
+        let stoppedCount = 0;
+        if (!module.on) {
+          workers.forEach((worker) => {
+            if (worker.module === module.id && worker.status !== "STOPPED") {
+              worker.status = "STOPPED";
+              stoppedCount += 1;
+            }
+          });
+        }
+        logAction(module.on ? "MODULE_ENABLE" : "MODULE_DISABLE", module.name, stoppedCount ? `${stoppedCount} dependent worker(s) stopped` : "Demo state changed");
+        render();
+        showToast(`${module.name} ${module.on ? "enabled" : "disabled"}${stoppedCount ? `; ${stoppedCount} dependent worker(s) stopped` : ""}. No backend state changed.`);
+        return;
+      }
+
+      const workerAction = event.target.closest("[data-worker-action]");
+      if (workerAction) {
+        const worker = workers.find((item) => item.id === workerAction.dataset.worker);
+        if (!worker) return;
+        if (!canManagePlatform()) {
+          showToast("This demo role cannot manage AI workers.");
+          return;
+        }
+        const action = workerAction.dataset.workerAction;
+        if (action === "scale") {
+          if (worker.status !== "RUNNING") {
+            showToast("Only a running demo worker can be scaled.");
+            return;
+          }
+          worker.scale = Math.min(worker.scale + 1, 10);
+        }
+        if (action === "pause") worker.status = "PAUSED";
+        if (action === "start") {
+          const dependency = modules.find((item) => item.id === worker.module);
+          if (dependency && !dependency.on) {
+            showToast(`Enable ${dependency.name} in Grid Management before starting this demo worker.`);
+            return;
+          }
+          worker.status = "RUNNING";
+        }
+        if (action === "shutdown") worker.status = "STOPPED";
+        logAction(`WORKER_${action.toUpperCase()}`, worker.name, `State: ${worker.status}; scale: ${worker.scale}`);
+        render();
+        const actionLabel = action === "scale" ? "scaled by one" : action === "shutdown" ? "shut down" : action === "pause" ? "paused" : "started";
+        showToast(`${worker.name} ${actionLabel} in this local demo. No agent or compute was affected.`);
+      }
+
+      const resolveButton = event.target.closest("[data-ticket-resolve]");
+      if (resolveButton) {
+        if (!canManagePlatform()) {
+          showToast("This demo role cannot resolve support tickets.");
+          return;
+        }
+        const ticket = supportTickets.find((item) => item.id === resolveButton.dataset.ticketResolve);
+        if (!ticket) return;
+        ticket.status = "Resolved";
+        logAction("SUPPORT_TICKET_RESOLVED", ticket.id, "Local demo state changed");
+        render();
+        showToast(`${ticket.id} marked resolved in this local demo.`);
+      }
+    });
+
+    document.addEventListener("submit", (event) => {
+      if (event.target.id !== "ticketForm") return;
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      const subject = String(formData.get("subject") || "").trim();
+      if (!subject) return;
+      const id = `SUP-${String(1043 + supportTickets.length - 3).padStart(4, "0")}`;
+      const ticket = { id, topic: subject, priority: String(formData.get("priority")), status: "Open", sensitivity: "Unclassified" };
+      supportTickets.unshift(ticket);
+      logAction("SUPPORT_TICKET_CREATED", ticket.id, "Local metadata-only demo record");
+      render();
+      showToast(`${ticket.id} created locally. Nothing was sent to a support service.`);
+    });
+
+    document.addEventListener("change", (event) => {
+      if (event.target.id !== "supportFiles") return;
+      const selectedFiles = Array.from(event.target.files || []);
+      const metadata = selectedFiles.length
+        ? selectedFiles.map((file) => `${file.name} (${(file.size / 1024).toFixed(1)} KB)`).join(" · ")
+        : "No files selected. Files are not uploaded or opened.";
+      document.getElementById("fileMetadata").textContent = metadata;
+    });
+
+    document.addEventListener("input", (event) => {
+      if (!event.target.matches("[data-reserve-input]")) return;
+      const revenue = Math.max(0, Number(document.getElementById("reserveRevenue").value) || 0);
+      const costs = Math.max(0, Number(document.getElementById("reserveCosts").value) || 0);
+      const reserve = Math.max(0, Number(document.getElementById("reserveBalance").value) || 0);
+      const decline = Math.min(100, Math.max(0, Number(document.getElementById("revenueDecline").value) || 0));
+      const stressedRevenue = revenue * (1 - decline / 100);
+      const netResult = stressedRevenue - costs;
+      const reserveAfter = Math.max(0, reserve + netResult);
+      const monthlyBurn = Math.max(0, costs - stressedRevenue);
+      const runway = monthlyBurn ? `${(reserveAfter / monthlyBurn).toFixed(1)} months` : "No modeled burn";
+      const reserveTarget = costs * 12;
+      document.getElementById("stressResults").innerHTML = `
+        <div class="result-item"><span>Revenue after decline</span><strong>${formatCurrency(stressedRevenue)}</strong></div>
+        <div class="result-item"><span>Monthly net result</span><strong>${formatCurrency(netResult)}</strong></div>
+        <div class="result-item"><span>Reserve after one month</span><strong>${formatCurrency(reserveAfter)}</strong></div>
+        <div class="result-item"><span>Runway at modeled burn</span><strong>${runway}</strong></div>
+        <div class="result-item"><span>12-month cost threshold</span><strong>${formatCurrency(reserveTarget)}</strong></div>
+        <div class="result-item"><span>Threshold status</span><strong>${reserveAfter >= reserveTarget ? "Above" : "Below"}</strong></div>`;
+    });
+
+    document.getElementById("roleSelect").addEventListener("change", (event) => {
+      const previousRole = activeRole;
+      const nextRole = event.target.value;
+      logAction("DEMO_ROLE_SELECTED", "Prototype session", `${roleLabels[previousRole]} → ${roleLabels[nextRole]}`);
+      activeRole = nextRole;
+      if (!canView(activeView)) activeView = "overview";
+      render();
+      showToast(`Switched to ${roleLabels[activeRole]} demo permissions. This is not server-side access control.`);
+    });
+
+    document.getElementById("exportCsv").addEventListener("click", () => {
+      const rows = [
+        ["CEDARS OS prototype metrics", "SIMULATION ONLY"],
+        ["Metric", "Illustrative value", "Data status"],
+        ["Verified revenue", "$24,860", "Sample; not production data"],
+        ["Wallet volume", "$81,240", "Sample; not production data"],
+        ["Jobs completed", "148", "Sample; not production data"],
+        ["Payment exceptions", "3", "Sample; not production data"],
+        ["Human Progress Index", "Concept", "No evidence source connected"]
+      ];
+      const csv = rows.map((row) => row.map((field) => `"${field.replaceAll('"', '""')}"`).join(",")).join("\r\n");
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+      link.download = "cedars-os-prototype-metrics.csv";
+      link.click();
+      URL.revokeObjectURL(link.href);
+      showToast("Downloaded sample metrics. The CSV is labeled simulation-only.");
+    });
+
+    render();
+  </script>
+</body>
+</html>

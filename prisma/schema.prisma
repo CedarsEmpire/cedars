@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  FOUNDER
+  INVESTOR
+  PARTNER
+  FINANCE_ADMIN
+  COMPLIANCE_OFFICER
+  HEALTHCARE_ADMIN
+  EDUCATION_ADMIN
+  USER
+}
+
+model User {
+  id             String      @id @default(uuid()) @db.Uuid
+  externalSubject String     @unique @map("external_subject")
+  role           Role
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  auditLogs      AuditLog[]
+  flagsUpdated   FeatureFlag[]
+
+  @@map("users")
+}
+
+model FeatureFlag {
+  id          String    @id @default(uuid()) @db.Uuid
+  moduleName  String    @unique @map("module_name") @db.VarChar(100)
+  enabled     Boolean   @default(false)
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  updatedBy   User?     @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("feature_flags")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String   @map("actor_id") @db.Uuid
+  actor      User     @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  action     String   @db.VarChar(100)
+  entityType String   @map("entity_type") @db.VarChar(100)
+  entityId   String   @map("entity_id") @db.VarChar(100)
+  payload    Json
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@map("audit_logs")
+}
