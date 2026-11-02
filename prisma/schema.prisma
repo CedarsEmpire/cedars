@@ -27,6 +27,8 @@ model User {
   updatedAt      DateTime    @updatedAt @map("updated_at")
   auditLogs      AuditLog[]
   flagsUpdated   FeatureFlag[]
+  workersUpdated WorkerConfig[]
+  gridsUpdated   GridConfig[]
 
   @@map("users")
 }
@@ -56,4 +58,54 @@ model AuditLog {
   @@index([actorId, createdAt])
   @@index([entityType, entityId, createdAt])
   @@map("audit_logs")
+}
+
+model WorkerConfig {
+  id               String   @id @db.VarChar(60)
+  enabled          Boolean  @default(false)
+  desiredInstances Int      @default(1) @map("desired_instances")
+  updatedById      String?  @map("updated_by_id") @db.Uuid
+  updatedBy        User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("worker_configs")
+}
+
+model GridConfig {
+  id            String   @id @db.VarChar(60)
+  desiredState  String   @default("STANDBY") @map("desired_state") @db.VarChar(20)
+  updatedById   String?  @map("updated_by_id") @db.Uuid
+  updatedBy     User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("grid_configs")
+}
+
+model TreasuryTransfer {
+  id              String   @id @default(uuid()) @db.Uuid
+  chain           String   @db.VarChar(10)
+  transactionHash String   @map("transaction_hash") @db.VarChar(128)
+  transferIndex   Int      @map("transfer_index")
+  blockNumber     BigInt   @map("block_number")
+  blockHash       String   @map("block_hash") @db.VarChar(128)
+  fromAddress     String   @map("from_address") @db.VarChar(128)
+  toAddress       String   @map("to_address") @db.VarChar(128)
+  asset           String   @db.VarChar(16)
+  amountBaseUnits String   @map("amount_base_units") @db.VarChar(100)
+  observedAt      DateTime @default(now()) @map("observed_at")
+
+  @@unique([chain, transactionHash, transferIndex])
+  @@index([chain, blockNumber])
+  @@index([observedAt])
+  @@map("treasury_transfers")
+}
+
+model TreasuryCursor {
+  chain            String   @id @db.VarChar(10)
+  lastScannedBlock BigInt   @map("last_scanned_block")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("treasury_cursors")
 }

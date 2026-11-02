@@ -5,6 +5,7 @@ import { AuthorizationError, authenticateRequest } from "../../../src/auth/autho
 import { moduleNameSchema, updateModule, updateModuleSchema } from "../../../src/features/modules.js";
 
 export default async function updateModuleHandler(request: VercelRequest, response: VercelResponse) {
+  response.setHeader("Cache-Control", "private, no-store");
   if (request.method !== "PUT") {
     response.setHeader("Allow", "PUT");
     return response.status(405).json({ error: "Method not allowed." });

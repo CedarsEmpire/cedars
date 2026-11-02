@@ -3,6 +3,7 @@ import { AuthorizationError, authenticateRequest } from "../../src/auth/authoriz
 import { listModules } from "../../src/features/modules.js";
 
 export default async function modulesHandler(request: VercelRequest, response: VercelResponse) {
+  response.setHeader("Cache-Control", "private, no-store");
   if (request.method !== "GET") {
     response.setHeader("Allow", "GET");
     return response.status(405).json({ error: "Method not allowed." });
