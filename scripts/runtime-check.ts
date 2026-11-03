@@ -5,7 +5,7 @@ import { Role } from "@prisma/client";
 process.env.CEDARS_USE_IN_MEMORY_DB = "1";
 delete process.env.CEDARS_RUNTIME_MODE;
 process.env.VERCEL_ENV = "development";
-const [{ prisma }, { default: modulesHandler }, { default: updateModuleHandler }, { default: auditHandler }, { default: operationsSummaryHandler }, { default: readyHandler }, { default: workersHandler }, { default: updateWorkerHandler }, { default: gridsHandler }, { default: updateGridHandler }, { default: treasuryHandler }] = await Promise.all([
+const [{ prisma }, { default: modulesHandler }, { default: updateModuleHandler }, { default: auditHandler }, { default: operationsSummaryHandler }, { default: readyHandler }, { default: workersHandler }, { default: updateWorkerHandler }, { default: gridsHandler }, { default: updateGridHandler }, { default: treasuryHandler }, { default: approvalsHandler }, { default: decideApprovalHandler }] = await Promise.all([
   import("../src/db.ts"),
   import("../api/modules/index.ts"),
   import("../api/admin/modules/[module].ts"),
@@ -16,7 +16,9 @@ const [{ prisma }, { default: modulesHandler }, { default: updateModuleHandler }
   import("../api/admin/workers/[worker].ts"),
   import("../api/grids/index.ts"),
   import("../api/admin/grids/[grid].ts"),
-  import("../api/admin/treasury.ts")
+  import("../api/admin/treasury.ts"),
+  import("../api/admin/approvals/index.ts"),
+  import("../api/admin/approvals/[approval].ts")
 ]);
 
 const localRoleClaim = "https://cedars.local/cedars/role";
@@ -94,6 +96,7 @@ async function main() {
   process.env.AUTH_ROLE_CLAIM = localRoleClaim;
 
   const founderToken = await createToken(Role.FOUNDER, "runtime-check-founder");
+  const superAdminToken = await createToken(Role.SUPER_ADMIN, "runtime-check-super-admin");
   const modulesResponse = makeResponse();
   await modulesHandler({
     method: "GET",
@@ -137,18 +140,37 @@ async function main() {
     query: { module: "healthcare_ai" },
     body: { enabled: true, reason: "Runtime check policy validation" }
   } as never, updateResponse as never);
-  assert(updateResponse.statusCode === 200, `Non-financial module update returned ${updateResponse.statusCode}.`);
+  assert(updateResponse.statusCode === 202, `Non-financial module update returned ${updateResponse.statusCode}, expected pending approval.`);
   assert(
     typeof updateResponse.body === "object" &&
     updateResponse.body !== null &&
-    "module" in updateResponse.body &&
-    typeof updateResponse.body.module === "object" &&
-    updateResponse.body.module !== null &&
-    "enabled" in updateResponse.body.module &&
-    updateResponse.body.module.enabled === true,
-    "Non-financial module update did not return an enabled module record."
+    "approvalRequired" in updateResponse.body && updateResponse.body.approvalRequired === true &&
+    "approval" in updateResponse.body && typeof updateResponse.body.approval === "object" && updateResponse.body.approval !== null &&
+    "id" in updateResponse.body.approval && typeof updateResponse.body.approval.id === "string",
+    "Non-financial module update did not create an approval request."
   );
-  console.log("PASS authorized non-financial module update");
+  const moduleApprovalId = updateResponse.body.approval.id;
+  assert((await prisma.featureFlag.findUnique({ where: { moduleName: "healthcare_ai" } }))?.enabled === false,
+    "Module changed before independent approval.");
+  const approvalQueueResponse = makeResponse();
+  await approvalsHandler({ method: "GET", headers: bearerHeaders(founderToken) } as never, approvalQueueResponse as never);
+  assert(approvalQueueResponse.statusCode === 200, `Approval queue returned ${approvalQueueResponse.statusCode}.`);
+  const moduleDecisionResponse = makeResponse();
+  await decideApprovalHandler({
+    method: "PUT",
+    headers: bearerHeaders(superAdminToken),
+    query: { approval: moduleApprovalId },
+    body: { decision: "APPROVE", reason: "Runtime check independent review" }
+  } as never, moduleDecisionResponse as never);
+  assert(moduleDecisionResponse.statusCode === 200 &&
+    typeof moduleDecisionResponse.body === "object" && moduleDecisionResponse.body !== null &&
+    "approval" in moduleDecisionResponse.body && typeof moduleDecisionResponse.body.approval === "object" &&
+    moduleDecisionResponse.body.approval !== null && "applied" in moduleDecisionResponse.body.approval &&
+    moduleDecisionResponse.body.approval.applied === true,
+    `Independent module approval failed: ${JSON.stringify(moduleDecisionResponse.body)}`);
+  assert((await prisma.featureFlag.findUnique({ where: { moduleName: "healthcare_ai" } }))?.enabled === true,
+    "Module did not change after independent approval.");
+  console.log("PASS independent approval required and applied for module activation");
 
   const partnerToken = await createToken(Role.PARTNER, "runtime-check-partner");
   const deniedUpdateResponse = makeResponse();
@@ -229,22 +251,33 @@ async function main() {
     query: { worker: "opportunity" },
     body: { enabled: true, desiredInstances: 2, reason: "Configure opportunity pilot" }
   } as never, workerUpdateResponse as never);
-  assert(workerUpdateResponse.statusCode === 200, `Worker configuration update returned ${workerUpdateResponse.statusCode}.`);
+  assert(workerUpdateResponse.statusCode === 202, `Worker configuration update returned ${workerUpdateResponse.statusCode}, expected pending approval.`);
   assert(
     typeof workerUpdateResponse.body === "object" &&
     workerUpdateResponse.body !== null &&
-    "worker" in workerUpdateResponse.body &&
-    typeof workerUpdateResponse.body.worker === "object" &&
-    workerUpdateResponse.body.worker !== null &&
-    "enabled" in workerUpdateResponse.body.worker &&
-    workerUpdateResponse.body.worker.enabled === true &&
-    "desiredInstances" in workerUpdateResponse.body.worker &&
-    workerUpdateResponse.body.worker.desiredInstances === 2 &&
-    "runtimeStatus" in workerUpdateResponse.body.worker &&
-    workerUpdateResponse.body.worker.runtimeStatus === "NOT_CONNECTED",
-    "Worker configuration update did not persist desired settings without implying runtime execution."
+    "approvalRequired" in workerUpdateResponse.body && workerUpdateResponse.body.approvalRequired === true &&
+    "approval" in workerUpdateResponse.body && typeof workerUpdateResponse.body.approval === "object" &&
+    workerUpdateResponse.body.approval !== null && "id" in workerUpdateResponse.body.approval &&
+    typeof workerUpdateResponse.body.approval.id === "string",
+    "Worker configuration update did not create an approval request."
   );
-  console.log("PASS audited worker configuration update without runtime execution");
+  const workerApprovalResponse = makeResponse();
+  await decideApprovalHandler({
+    method: "PUT",
+    headers: bearerHeaders(superAdminToken),
+    query: { approval: workerUpdateResponse.body.approval.id },
+    body: { decision: "APPROVE", reason: "Runtime check worker review" }
+  } as never, workerApprovalResponse as never);
+  assert(workerApprovalResponse.statusCode === 200 &&
+    typeof workerApprovalResponse.body === "object" && workerApprovalResponse.body !== null &&
+    "approval" in workerApprovalResponse.body && typeof workerApprovalResponse.body.approval === "object" &&
+    workerApprovalResponse.body.approval !== null && "applied" in workerApprovalResponse.body.approval &&
+    workerApprovalResponse.body.approval.applied === true,
+    `Worker approval failed: ${JSON.stringify(workerApprovalResponse.body)}`);
+  const approvedWorker = await prisma.workerConfig.findUnique({ where: { id: "opportunity" } });
+  assert(approvedWorker?.enabled === true && approvedWorker.desiredInstances === 2,
+    "Worker configuration did not apply after independent approval.");
+  console.log("PASS independent approval required and applied for worker activation");
 
   const partnerWorkerUpdateResponse = makeResponse();
   await updateWorkerHandler({
@@ -379,14 +412,30 @@ async function main() {
     query: { grid: "internet" },
     body: { desiredState: "WORKING", reason: "Start simulated internet grid" }
   } as never, simulatedGridUpdateResponse as never);
+  assert(simulatedGridUpdateResponse.statusCode === 202 &&
+    typeof simulatedGridUpdateResponse.body === "object" && simulatedGridUpdateResponse.body !== null &&
+    "approval" in simulatedGridUpdateResponse.body && typeof simulatedGridUpdateResponse.body.approval === "object" &&
+    simulatedGridUpdateResponse.body.approval !== null && "id" in simulatedGridUpdateResponse.body.approval,
+    "Simulated grid activation did not require independent approval.");
+  const simulatedGridApprovalResponse = makeResponse();
+  await decideApprovalHandler({
+    method: "PUT",
+    headers: bearerHeaders(superAdminToken),
+    query: { approval: simulatedGridUpdateResponse.body.approval.id },
+    body: { decision: "APPROVE", reason: "Runtime check grid review" }
+  } as never, simulatedGridApprovalResponse as never);
+  assert(simulatedGridApprovalResponse.statusCode === 200 &&
+    typeof simulatedGridApprovalResponse.body === "object" && simulatedGridApprovalResponse.body !== null &&
+    "approval" in simulatedGridApprovalResponse.body && typeof simulatedGridApprovalResponse.body.approval === "object" &&
+    simulatedGridApprovalResponse.body.approval !== null && "applied" in simulatedGridApprovalResponse.body.approval &&
+    simulatedGridApprovalResponse.body.approval.applied === true,
+    "Independent grid approval failed.");
+  const approvedGrid = await prisma.gridConfig.findUnique({ where: { id: "internet" } });
+  assert(approvedGrid?.desiredState === "WORKING", "Grid state did not apply after independent approval.");
   assert(
     typeof simulatedGridUpdateResponse.body === "object" && simulatedGridUpdateResponse.body !== null &&
-    "grid" in simulatedGridUpdateResponse.body && typeof simulatedGridUpdateResponse.body.grid === "object" &&
-    simulatedGridUpdateResponse.body.grid !== null && "runtimeMode" in simulatedGridUpdateResponse.body.grid &&
-    simulatedGridUpdateResponse.body.grid.runtimeMode === "SIMULATOR" &&
-    "runtimeStatus" in simulatedGridUpdateResponse.body.grid &&
-    simulatedGridUpdateResponse.body.grid.runtimeStatus === "SIMULATED_WORKING",
-    "Preview simulator did not report the grid's simulated desired-state transition."
+    "approvalRequired" in simulatedGridUpdateResponse.body && simulatedGridUpdateResponse.body.approvalRequired === true,
+    "Grid request did not remain pending until independent approval."
   );
 
   process.env.VERCEL_ENV = "production";

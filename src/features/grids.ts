@@ -4,6 +4,7 @@ import { AuthorizationError } from "../auth/authorization.js";
 import { prisma } from "../db.js";
 import { gridCatalog, gridIds, type GridDesiredState } from "./grid-catalog.js";
 import { getRuntimeMode } from "./runtime-mode.js";
+import { requestControlApproval } from "./approvals.js";
 
 export const gridIdSchema = z.enum(gridIds);
 export const gridDesiredStateSchema = z.enum(["STANDBY", "WORKING", "MAINTENANCE"]);
@@ -52,6 +53,21 @@ export async function updateGrid(input: {
   const grid = gridCatalog.find((item) => item.id === input.gridId);
   if (!grid) throw new Error("Grid is not in the supported catalog.");
   const runtimeMode = getRuntimeMode();
+  const current = await prisma.gridConfig.findUnique({ where: { id: input.gridId } });
+  const currentState = current?.desiredState ?? "STANDBY";
+  if (input.desiredState === "WORKING" && currentState !== "WORKING") {
+    const approval = await requestControlApproval({
+      actorSubject: input.actorSubject,
+      actorRole: input.actorRole,
+      scope: "GRID_WORKING",
+      entityType: "GRID_CONFIG",
+      entityId: input.gridId,
+      expectedState: { desiredState: currentState },
+      proposedState: { desiredState: input.desiredState },
+      reason: input.reason
+    });
+    return { approvalRequired: true as const, approval };
+  }
 
   return prisma.$transaction(async (transaction) => {
     const actor = await transaction.user.upsert({

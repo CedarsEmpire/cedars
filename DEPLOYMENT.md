@@ -98,7 +98,22 @@ After deploying to Preview, verify:
 
 Use a Preview access token and Preview database only. Verify both an authorized role and a least-privileged `USER`; never use a real user's production token for this test. The readiness endpoint reports control-plane configuration/connectivity, not security approval or actual runtime integration for grids, workers, payments, or AI. A 200 response does not mean live operations are ready: `liveOperationsReady` remains `false`, worker/grid runtimes are disconnected, and financial execution is disabled until those integrations are implemented and independently validated.
 
-## 8. Launch conditions
+## 8. Thirty-day restricted real-money pilot gate
+
+The required pilot objective is to verify real customer-paid Worker/Grid work by the end of Day 3. This repository is not currently capable of that: it records manual Grid Task work orders but does not execute Workers, collect customer payments, reconcile receipts, credit balances, or settle or pay out funds. Treasury is read-only. Accepted tasks are not verified revenue. The pilot is therefore BLOCKED; do not start the 30-day clock, enable productive treasury, or represent the current system as earning money until the following capabilities and approvals are complete.
+
+1. Use Preview first for dashboard, identity, authorization, and non-financial workflow validation. Preview, simulator, and testnet results do not count as real customer revenue.
+2. Implement and independently review one bounded end-to-end paid-work flow: real buyer and written scope, verified Worker/Grid delivery, actual customer payment, provider/bank reconciliation, and documented handling of fees, refunds, disputes, and worker costs. Do not treat deposits, investments, or internal transfers as revenue. Add explicit transaction and aggregate exposure limits, idempotency, dual approval, complete audit trails, failure recovery, and a tested emergency stop. Define any custody/signing design separately; never expose private keys in browser code or ordinary application configuration.
+3. Enforce internal-only access at the identity or deployment boundary with a named tester allowlist. Verify that unauthenticated and non-allowlisted people cannot reach the application or its APIs. Role-based authorization alone is not proof that the Production deployment is private.
+4. Enable Grid Task APIs only in the restricted pilot environment by setting `CEDARS_GRID_TASKS_ENABLED=true`, setting `CEDARS_GRID_TASK_TESTER_SUBJECTS` to the exact comma-separated identity subjects approved for the pilot, and turning the audited `grid_tasks` module flag ON. All three gates are required. Leave the environment switch disabled and module flag OFF elsewhere; keep the deployment/identity allowlist as an independent access boundary.
+5. Isolate Production identity, database, treasury addresses, and credentials from Preview and other environments. Obtain written finance, security, and custody-owner approval for the chains, assets, transaction limits, test accounts, and operational stop conditions. Verify wallet ownership and recipient addresses independently.
+6. Before starting the clock, test the approved real-money flow end to end using the bounded scope, including duplicate/replayed requests, independent reconciliation, audit access, backup/restore, pause procedure, and recovery evidence. Record the pilot's exact start timestamp only after all entry criteria and owner approvals pass; require the first reconciled customer-paid delivery by the end of Day 3.
+7. Record pilot start/end timestamps, named testers, approved limits, expected availability and sync lag, transaction references, daily reconciliation, incidents, outages, and remediation evidence. Run for 30 complete calendar days. Pause the pilot for any unexplained balance discrepancy, unauthorized action, missed control, or unresolved transaction; restart the 30-day window after resolution and reapproval.
+8. At the end, require finance/custody, security, and governance sign-off against pass/fail thresholds agreed before day one. Keep public access disabled until the evidence is reviewed and a separate public-launch approval is recorded.
+
+The existing `prod:check` validates environment configuration, identity-provider metadata, database connectivity, and migration status; it does not validate financial execution, internal-only access, or pilot safety. It is necessary but not sufficient for this pilot.
+
+## 9. Launch conditions
 
 Do not treat this as production-ready if any of the following are true:
 
@@ -109,6 +124,6 @@ Do not treat this as production-ready if any of the following are true:
 - treasury ownership or custody is not independently verified
 - the app is running with a shared database or reused preview credentials
 
-## 9. Final sign-off
+## 10. Final sign-off
 
 Production release should require explicit sign-off from the responsible operators, security reviewers, and finance/governance owners. The current prototype is a control-plane and governance starter, not a live operating system for money movement or autonomous execution.

@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { z } from "zod";
 import { AuthorizationError, authenticateRequest } from "../../../src/auth/authorization.js";
+import { ApprovalWorkflowError } from "../../../src/features/approvals.js";
 import { gridIdSchema, updateGrid, updateGridSchema } from "../../../src/features/grids.js";
 
 export default async function updateGridHandler(request: VercelRequest, response: VercelResponse) {
@@ -17,16 +18,19 @@ export default async function updateGridHandler(request: VercelRequest, response
       return response.status(400).json({ error: "Invalid grid identifier or request body." });
     }
 
-    const grid = await updateGrid({
+    const result = await updateGrid({
       actorSubject: actor.subject,
       actorRole: actor.role,
       gridId: gridId.data,
       ...body.data
     });
     response.setHeader("Cache-Control", "private, no-store");
-    return response.status(200).json({ grid });
+    if ("approvalRequired" in result && result.approvalRequired) {
+      return response.status(202).json({ approval: result.approval, approvalRequired: true });
+    }
+    return response.status(200).json({ grid: result });
   } catch (error) {
-    if (error instanceof AuthorizationError) {
+    if (error instanceof AuthorizationError || error instanceof ApprovalWorkflowError) {
       return response.status(error.statusCode).json({ error: error.message });
     }
     if (error instanceof z.ZodError) {

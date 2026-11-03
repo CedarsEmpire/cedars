@@ -17,5 +17,6 @@ export const moduleNames = [
   "synthetic_reality",
   "blockchain_trust",
   "collective_intelligence",
-  "admin_control_center"
+  "admin_control_center",
+  "grid_tasks"
 ] as const;

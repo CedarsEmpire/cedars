@@ -1,4 +1,4 @@
-import { PrismaClient, type Role } from "@prisma/client";
+import { ApprovalDecisionType, ApprovalStatus, GridTaskStatus, PrismaClient, type Role } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import { moduleNames } from "./features/module-catalog.js";
 import { gridCatalog } from "./features/grid-catalog.js";
@@ -48,6 +48,25 @@ type GridConfigRecord = {
   updatedAt: Date;
 };
 
+type GridTaskRecord = {
+  id: string;
+  buyerId: string;
+  gridId: string;
+  workerId: string | null;
+  title: string;
+  description: string;
+  acceptanceCriteria: string;
+  agreedAmount: string;
+  currency: string;
+  status: GridTaskStatus;
+  deliveryEvidence: string | null;
+  deliveredAt: Date | null;
+  acceptedById: string | null;
+  acceptedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 type TreasuryTransferRecord = {
   id: string;
   chain: string;
@@ -68,14 +87,44 @@ type TreasuryCursorRecord = {
   updatedAt: Date;
 };
 
+type ApprovalRequestRecord = {
+  id: string;
+  scope: string;
+  entityType: string;
+  entityId: string;
+  expectedState: Record<string, unknown>;
+  proposedState: Record<string, unknown>;
+  requiredApproverRoles: Role[];
+  reason: string;
+  status: ApprovalStatus;
+  version: number;
+  requestedById: string;
+  requestedByRole: Role;
+  createdAt: Date;
+  resolvedAt: Date | null;
+};
+
+type ApprovalDecisionRecord = {
+  id: string;
+  requestId: string;
+  reviewerId: string;
+  reviewerRole: Role;
+  decision: ApprovalDecisionType;
+  reason: string;
+  createdAt: Date;
+};
+
 function createInMemoryPrisma() {
   const users = new Map<string, UserRecord>();
   const usersById = new Map<string, UserRecord>();
   const featureFlags = new Map<string, FeatureFlagRecord>();
   const workerConfigs = new Map<string, WorkerConfigRecord>();
   const gridConfigs = new Map<string, GridConfigRecord>();
+  const gridTasks = new Map<string, GridTaskRecord>();
   const treasuryTransfers = new Map<string, TreasuryTransferRecord>();
   const treasuryCursors = new Map<string, TreasuryCursorRecord>();
+  const approvalRequests = new Map<string, ApprovalRequestRecord>();
+  const approvalDecisions = new Map<string, ApprovalDecisionRecord>();
   const auditLogs: AuditLogRecord[] = [];
   for (const moduleName of moduleNames) {
     featureFlags.set(moduleName, {
@@ -140,6 +189,14 @@ function createInMemoryPrisma() {
     updatedAt: new Date(record.updatedAt)
   });
 
+  const normalizeGridTask = (record: GridTaskRecord) => ({
+    ...record,
+    deliveredAt: record.deliveredAt ? new Date(record.deliveredAt) : null,
+    acceptedAt: record.acceptedAt ? new Date(record.acceptedAt) : null,
+    createdAt: new Date(record.createdAt),
+    updatedAt: new Date(record.updatedAt)
+  });
+
   const treasuryTransferStore = {
     createMany: async ({ data, skipDuplicates }: {
       data: Omit<TreasuryTransferRecord, "id" | "observedAt">[];
@@ -197,6 +254,12 @@ function createInMemoryPrisma() {
   };
 
   const userStore = {
+    findUnique: async ({ where }: { where: { id?: string; externalSubject?: string } }) => {
+      const record = where.externalSubject
+        ? users.get(where.externalSubject)
+        : where.id ? usersById.get(where.id) : undefined;
+      return record ? normalizeUser(record) : null;
+    },
     upsert: async ({ where, create, update }: { where: { externalSubject: string }; create: { externalSubject: string; role: Role }; update: Partial<{ role: Role }> }) => {
       const current = users.get(where.externalSubject);
       if (current) {
@@ -247,6 +310,10 @@ function createInMemoryPrisma() {
         Object.keys(select).map((key) => [key, key === "moduleName" ? record.moduleName : key === "updatedAt" ? record.updatedAt : record[key as keyof FeatureFlagRecord]])
       );
     },
+    findUnique: async ({ where }: { where: { moduleName: string } }) => {
+      const record = featureFlags.get(where.moduleName);
+      return record ? normalizeFlag(record) : null;
+    },
     upsert: async ({ where, create, update }: { where: { moduleName: string }; create: { moduleName: string; enabled: boolean; updatedById?: string | null }; update: Partial<{ enabled: boolean; updatedById: string | null }> }) => {
       const current = featureFlags.get(where.moduleName);
       if (current) {
@@ -282,6 +349,10 @@ function createInMemoryPrisma() {
       return sorted.map((record) => normalizeWorkerConfig(record));
     },
     count: async () => workerConfigs.size,
+    findUnique: async ({ where }: { where: { id: string } }) => {
+      const record = workerConfigs.get(where.id);
+      return record ? normalizeWorkerConfig(record) : null;
+    },
     upsert: async ({ where, create, update }: {
       where: { id: string };
       create: { id: string; enabled: boolean; desiredInstances: number; updatedById?: string | null };
@@ -322,6 +393,10 @@ function createInMemoryPrisma() {
       return sorted.map((record) => normalizeGridConfig(record));
     },
     count: async () => gridConfigs.size,
+    findUnique: async ({ where }: { where: { id: string } }) => {
+      const record = gridConfigs.get(where.id);
+      return record ? normalizeGridConfig(record) : null;
+    },
     upsert: async ({ where, create, update }: {
       where: { id: string };
       create: { id: string; desiredState: GridConfigRecord["desiredState"]; updatedById?: string | null };
@@ -348,6 +423,42 @@ function createInMemoryPrisma() {
       };
       gridConfigs.set(created.id, created);
       return normalizeGridConfig(created);
+    }
+  };
+
+  const gridTaskStore = {
+    create: async ({ data }: { data: Omit<GridTaskRecord, "id" | "createdAt" | "updatedAt"> }) => {
+      const now = new Date();
+      const record: GridTaskRecord = { ...data, id: randomUUID(), createdAt: now, updatedAt: now };
+      gridTasks.set(record.id, record);
+      return normalizeGridTask(record);
+    },
+    findMany: async ({ where, orderBy }: {
+      where?: Partial<Pick<GridTaskRecord, "buyerId" | "gridId" | "workerId" | "status">>;
+      orderBy?: { createdAt?: "asc" | "desc" };
+    } = {}) => {
+      let rows = [...gridTasks.values()];
+      if (where?.buyerId) rows = rows.filter((record) => record.buyerId === where.buyerId);
+      if (where?.gridId) rows = rows.filter((record) => record.gridId === where.gridId);
+      if (where?.workerId) rows = rows.filter((record) => record.workerId === where.workerId);
+      if (where?.status) rows = rows.filter((record) => record.status === where.status);
+      const direction = orderBy?.createdAt === "asc" ? 1 : -1;
+      rows.sort((left, right) => direction * (left.createdAt.getTime() - right.createdAt.getTime()));
+      return rows.map(normalizeGridTask);
+    },
+    findUnique: async ({ where }: { where: { id: string } }) => {
+      const record = gridTasks.get(where.id);
+      return record ? normalizeGridTask(record) : null;
+    },
+    updateMany: async ({ where, data }: {
+      where: { id: string; status?: GridTaskStatus };
+      data: Partial<Omit<GridTaskRecord, "id" | "createdAt" | "buyerId">>;
+    }) => {
+      const current = gridTasks.get(where.id);
+      if (!current || (where.status && current.status !== where.status)) return { count: 0 };
+      const updated: GridTaskRecord = { ...current, ...data, updatedAt: new Date() };
+      gridTasks.set(updated.id, updated);
+      return { count: 1 };
     }
   };
 
@@ -451,14 +562,97 @@ function createInMemoryPrisma() {
     }
   };
 
+  const approvalDecisionStore = {
+    create: async ({ data }: { data: Omit<ApprovalDecisionRecord, "id" | "createdAt"> }) => {
+      if ([...approvalDecisions.values()].some((record) => record.requestId === data.requestId && record.reviewerId === data.reviewerId)) {
+        throw new Error("Reviewer has already decided this approval request.");
+      }
+      const record: ApprovalDecisionRecord = { ...data, id: randomUUID(), createdAt: new Date() };
+      approvalDecisions.set(record.id, record);
+      return { ...record };
+    },
+    findMany: async ({ where }: { where?: { requestId?: string } } = {}) => {
+      const rows = [...approvalDecisions.values()].filter((record) => !where?.requestId || record.requestId === where.requestId);
+      return rows.map((record) => ({ ...record }));
+    }
+  };
+
+  const approvalRequestStore = {
+    create: async ({ data }: { data: Omit<ApprovalRequestRecord, "id" | "createdAt" | "resolvedAt" | "version"> }) => {
+      const record: ApprovalRequestRecord = {
+        ...data,
+        id: randomUUID(),
+        status: ApprovalStatus.PENDING,
+        version: 0,
+        createdAt: new Date(),
+        resolvedAt: null
+      };
+      approvalRequests.set(record.id, record);
+      return { ...record };
+    },
+    findMany: async ({ where, orderBy, take, include }: {
+      where?: { status?: ApprovalStatus; entityType?: string; entityId?: string };
+      orderBy?: { createdAt?: "asc" | "desc" };
+      take?: number;
+      include?: { decisions?: boolean };
+    } = {}) => {
+      let rows = [...approvalRequests.values()];
+      if (where?.status) rows = rows.filter((record) => record.status === where.status);
+      if (where?.entityType) rows = rows.filter((record) => record.entityType === where.entityType);
+      if (where?.entityId) rows = rows.filter((record) => record.entityId === where.entityId);
+      const direction = orderBy?.createdAt === "asc" ? 1 : -1;
+      rows.sort((left, right) => direction * (left.createdAt.getTime() - right.createdAt.getTime()));
+      if (typeof take === "number") rows = rows.slice(0, take);
+      return rows.map((record) => ({
+        ...record,
+        expectedState: { ...record.expectedState },
+        proposedState: { ...record.proposedState },
+        requiredApproverRoles: [...record.requiredApproverRoles],
+        ...(include?.decisions ? {
+          decisions: [...approvalDecisions.values()]
+            .filter((decision) => decision.requestId === record.id)
+            .map((decision) => ({ ...decision }))
+        } : {})
+      }));
+    },
+    findUnique: async ({ where, include }: { where: { id: string }; include?: { decisions?: boolean } }) => {
+      const record = approvalRequests.get(where.id);
+      if (!record) return null;
+      return {
+        ...record,
+        expectedState: { ...record.expectedState },
+        proposedState: { ...record.proposedState },
+        requiredApproverRoles: [...record.requiredApproverRoles],
+        ...(include?.decisions ? {
+          decisions: [...approvalDecisions.values()]
+            .filter((decision) => decision.requestId === record.id)
+            .map((decision) => ({ ...decision }))
+        } : {})
+      };
+    },
+    updateMany: async ({ where, data }: {
+      where: { id: string; status?: ApprovalStatus; version?: number };
+      data: Partial<Pick<ApprovalRequestRecord, "status" | "resolvedAt" | "version">>;
+    }) => {
+      const current = approvalRequests.get(where.id);
+      if (!current || (where.status && current.status !== where.status) ||
+          (where.version !== undefined && current.version !== where.version)) return { count: 0 };
+      approvalRequests.set(where.id, { ...current, ...data });
+      return { count: 1 };
+    }
+  };
+
   type MemoryTransaction = {
     user: typeof userStore;
     featureFlag: typeof featureFlagStore;
     workerConfig: typeof workerConfigStore;
     gridConfig: typeof gridConfigStore;
+    gridTask: typeof gridTaskStore;
     treasuryTransfer: typeof treasuryTransferStore;
     treasuryCursor: typeof treasuryCursorStore;
     auditLog: typeof auditLogStore;
+    approvalRequest: typeof approvalRequestStore;
+    approvalDecision: typeof approvalDecisionStore;
   };
 
   const transaction: MemoryTransaction = {
@@ -466,9 +660,12 @@ function createInMemoryPrisma() {
     featureFlag: featureFlagStore,
     workerConfig: workerConfigStore,
     gridConfig: gridConfigStore,
+    gridTask: gridTaskStore,
     treasuryTransfer: treasuryTransferStore,
     treasuryCursor: treasuryCursorStore,
-    auditLog: auditLogStore
+    auditLog: auditLogStore,
+    approvalRequest: approvalRequestStore,
+    approvalDecision: approvalDecisionStore
   };
 
   return {
@@ -476,9 +673,12 @@ function createInMemoryPrisma() {
     featureFlag: featureFlagStore,
     workerConfig: workerConfigStore,
     gridConfig: gridConfigStore,
+    gridTask: gridTaskStore,
     treasuryTransfer: treasuryTransferStore,
     treasuryCursor: treasuryCursorStore,
     auditLog: auditLogStore,
+    approvalRequest: approvalRequestStore,
+    approvalDecision: approvalDecisionStore,
     $queryRaw: async () => [{ "?column?": 1 }],
     $transaction: async <T>(callback: (transaction: MemoryTransaction) => Promise<T>) => callback(transaction),
     $disconnect: async () => undefined

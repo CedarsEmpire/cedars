@@ -10,11 +10,15 @@ import readyHandler from "../api/ready.ts";
 import authConfigHandler from "../api/auth/config.ts";
 import modulesHandler from "../api/modules/index.ts";
 import workersHandler from "../api/workers/index.ts";
+import gridTasksHandler from "../api/tasks/index.ts";
+import updateGridTaskHandler from "../api/tasks/[task].ts";
 import updateWorkerHandler from "../api/admin/workers/[worker].ts";
 import gridsHandler from "../api/grids/index.ts";
 import updateGridHandler from "../api/admin/grids/[grid].ts";
 import auditHandler from "../api/admin/audit.ts";
 import updateModuleHandler from "../api/admin/modules/[module].ts";
+import approvalsHandler from "../api/admin/approvals/index.ts";
+import decideApprovalHandler from "../api/admin/approvals/[approval].ts";
 import operationsSummaryHandler from "../api/operations/summary.ts";
 import treasuryHandler from "../api/admin/treasury.ts";
 import { prisma } from "../src/db.ts";
@@ -36,13 +40,26 @@ publicJwk.use = "sig";
 publicJwk.alg = "RS256";
 
 const localSubject = "local-dev-founder";
+const localApproverSubject = "local-dev-super-admin";
 await prisma.user.upsert({
   where: { externalSubject: localSubject },
   create: { externalSubject: localSubject, role: Role.FOUNDER },
   update: { role: Role.FOUNDER }
 });
+await prisma.user.upsert({
+  where: { externalSubject: localApproverSubject },
+  create: { externalSubject: localApproverSubject, role: Role.SUPER_ADMIN },
+  update: { role: Role.SUPER_ADMIN }
+});
 
 const localToken = await new SignJWT({ sub: localSubject, [localRoleClaim]: Role.FOUNDER })
+  .setProtectedHeader({ alg: "RS256", kid: "local-dev-kid" })
+  .setIssuedAt()
+  .setIssuer(issuer)
+  .setAudience(audience)
+  .setExpirationTime("1h")
+  .sign(privateKey);
+const localApproverToken = await new SignJWT({ sub: localApproverSubject, [localRoleClaim]: Role.SUPER_ADMIN })
   .setProtectedHeader({ alg: "RS256", kid: "local-dev-kid" })
   .setIssuedAt()
   .setIssuer(issuer)
@@ -122,12 +139,18 @@ function matchRoute(pathname: string, requestMethod: string) {
     { method: "GET", pattern: /^\/api\/health$/ },
     { method: "GET", pattern: /^\/api\/auth\/config$/ },
     { method: "POST", pattern: /^\/api\/auth\/local-token$/ },
+    { method: "POST", pattern: /^\/api\/auth\/local-approver-token$/ },
     { method: "GET", pattern: /^\/api\/modules$/ },
     { method: "GET", pattern: /^\/api\/workers$/ },
     { method: "GET", pattern: /^\/api\/grids$/ },
+    { method: "GET", pattern: /^\/api\/tasks$/ },
+    { method: "POST", pattern: /^\/api\/tasks$/ },
+    { method: "PUT", pattern: /^\/api\/tasks\/([^/]+)$/ },
     { method: "GET", pattern: /^\/api\/operations\/summary$/ },
     { method: "GET", pattern: /^\/api\/ready$/ },
     { method: "GET", pattern: /^\/api\/admin\/audit$/ },
+    { method: "GET", pattern: /^\/api\/admin\/approvals$/ },
+    { method: "PUT", pattern: /^\/api\/admin\/approvals\/([^/]+)$/ },
     { method: "GET", pattern: /^\/api\/admin\/treasury$/ },
     { method: "POST", pattern: /^\/api\/admin\/treasury$/ },
     { method: "PUT", pattern: /^\/api\/admin\/modules\/([^/]+)$/ },
@@ -252,6 +275,15 @@ const server = http.createServer(async (request, response) => {
       return responseProxy.json({ access_token: localToken, expires_in: 3600 });
     }
 
+    if (url.pathname === "/api/auth/local-approver-token") {
+      const origin = request.headers.origin;
+      const host = request.headers.host;
+      if (!isLocalHost(origin, host)) {
+        return responseProxy.status(403).json({ error: "Local reviewer sign-in requires a same-origin request from localhost." });
+      }
+      return responseProxy.json({ access_token: localApproverToken, expires_in: 3600 });
+    }
+
     if (url.pathname === "/api/admin/treasury") {
       const body = request.method === "POST" ? await readJsonBody(request) : {};
       await treasuryHandler({
@@ -267,16 +299,31 @@ const server = http.createServer(async (request, response) => {
       const body = await readJsonBody(request);
       const queryKey = url.pathname.startsWith("/api/admin/workers/")
         ? "worker"
-        : url.pathname.startsWith("/api/admin/grids/") ? "grid" : "module";
+        : url.pathname.startsWith("/api/admin/grids/") ? "grid"
+          : url.pathname.startsWith("/api/tasks/") ? "task" : "module";
+      const resolvedQueryKey = url.pathname.startsWith("/api/admin/approvals/") ? "approval" : queryKey;
       const requestProxy = {
         method: request.method,
         headers: request.headers,
-        query: { [queryKey]: route.params[0] },
+        query: { [resolvedQueryKey]: route.params[0] },
         body
       } as any;
-      if (queryKey === "worker") await updateWorkerHandler(requestProxy, responseProxy as any);
-      else if (queryKey === "grid") await updateGridHandler(requestProxy, responseProxy as any);
+      if (resolvedQueryKey === "approval") await decideApprovalHandler(requestProxy, responseProxy as any);
+      else if (resolvedQueryKey === "worker") await updateWorkerHandler(requestProxy, responseProxy as any);
+      else if (resolvedQueryKey === "grid") await updateGridHandler(requestProxy, responseProxy as any);
+      else if (resolvedQueryKey === "task") await updateGridTaskHandler(requestProxy, responseProxy as any);
       else await updateModuleHandler(requestProxy, responseProxy as any);
+      return;
+    }
+
+    if (url.pathname === "/api/tasks") {
+      const body = request.method === "POST" ? await readJsonBody(request) : {};
+      await gridTasksHandler({
+        method: request.method,
+        headers: request.headers,
+        query: Object.fromEntries(url.searchParams.entries()),
+        body
+      } as any, responseProxy as any);
       return;
     }
 
@@ -324,6 +371,11 @@ const server = http.createServer(async (request, response) => {
 
     if (url.pathname === "/api/admin/audit") {
       await auditHandler(requestProxy, responseProxy as any);
+      return;
+    }
+
+    if (url.pathname === "/api/admin/approvals") {
+      await approvalsHandler(requestProxy, responseProxy as any);
       return;
     }
   }

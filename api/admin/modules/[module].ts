@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Role } from "@prisma/client";
 import { z } from "zod";
 import { AuthorizationError, authenticateRequest } from "../../../src/auth/authorization.js";
+import { ApprovalWorkflowError } from "../../../src/features/approvals.js";
 import { moduleNameSchema, updateModule, updateModuleSchema } from "../../../src/features/modules.js";
 
 export default async function updateModuleHandler(request: VercelRequest, response: VercelResponse) {
@@ -19,15 +20,18 @@ export default async function updateModuleHandler(request: VercelRequest, respon
       return response.status(400).json({ error: "Invalid module name or request body." });
     }
 
-    const flag = await updateModule({
+    const result = await updateModule({
       actorSubject: actor.subject,
       actorRole: actor.role as Role,
       moduleName: moduleName.data,
       ...body.data
     });
-    return response.status(200).json({ module: flag });
+    if ("approvalRequired" in result && result.approvalRequired) {
+      return response.status(202).json({ approval: result.approval, approvalRequired: true });
+    }
+    return response.status(200).json({ module: result });
   } catch (error) {
-    if (error instanceof AuthorizationError) {
+    if (error instanceof AuthorizationError || error instanceof ApprovalWorkflowError) {
       return response.status(error.statusCode).json({ error: error.message });
     }
     if (error instanceof z.ZodError) {

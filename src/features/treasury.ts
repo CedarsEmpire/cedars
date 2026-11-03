@@ -9,7 +9,7 @@ export type TreasuryChain = typeof chainNames[number];
 
 const blockNumberSchema = z.string().regex(/^\d{1,20}$/).transform((value) => BigInt(value));
 const tronAlphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-const maxBlocksPerSync = 5n;
+const maxBlocksPerSync = 120n;
 const pageSize = 100;
 
 type ChainConfig = {
@@ -17,6 +17,7 @@ type ChainConfig = {
   rpcUrl: URL;
   treasuryAddress: string;
   normalizedAddress: string;
+  usdtContract: string | null;
   startBlock: bigint;
   confirmations: bigint;
 };
@@ -29,9 +30,11 @@ export type ObservedTransfer = {
   blockHash: string;
   fromAddress: string;
   toAddress: string;
-  asset: "TRX" | "BNB";
+  asset: "TRX" | "BNB" | "USDT-TRC20" | "USDT-BEP20";
   amountBaseUnits: string;
 };
+
+const transferEventTopic = "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -90,6 +93,22 @@ function normalizeTronAddress(value: string): string {
   return tronAddressBytes(value).toString("hex").toLowerCase();
 }
 
+function matchesTronAddress(value: string, expected: string): boolean {
+  try {
+    return normalizeTronAddress(value) === expected;
+  } catch {
+    return false;
+  }
+}
+
+function tronLogAddress(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const address = value.replace(/^0x/i, "");
+  if (/^[0-9a-fA-F]{40}$/.test(address)) return `41${address}`.toLowerCase();
+  if (/^41[0-9a-fA-F]{40}$/.test(address)) return address.toLowerCase();
+  return null;
+}
+
 function formatTronAddress(value: string): string {
   const payload = tronAddressBytes(value);
   return base58Encode(Buffer.concat([payload, doubleSha256(payload).subarray(0, 4)]));
@@ -105,7 +124,8 @@ function getChainConfig(chain: TreasuryChain): ChainConfig | null {
   const rpcValue = process.env[`${prefix}_RPC_URL`];
   const address = process.env[`${prefix}_TREASURY_ADDRESS`];
   const startValue = process.env[`${prefix}_START_BLOCK`];
-  if (!rpcValue && !address && !startValue) return null;
+  const usdtContractValue = process.env[`${prefix}_USDT_CONTRACT`];
+  if (!rpcValue && !address && !startValue && !usdtContractValue) return null;
   if (!rpcValue || !address || !startValue) {
     throw new Error(`${chain} monitoring requires an RPC URL, treasury address, and start block.`);
   }
@@ -118,14 +138,17 @@ function getChainConfig(chain: TreasuryChain): ChainConfig | null {
   }
   const startBlock = blockNumberSchema.parse(startValue);
   const normalizedAddress = chain === "TRON" ? normalizeTronAddress(address) : normalizeBnbAddress(address);
+  const usdtContract = usdtContractValue
+    ? chain === "TRON" ? normalizeTronAddress(usdtContractValue) : normalizeBnbAddress(usdtContractValue)
+    : null;
   const confirmationValue = process.env[`${prefix}_CONFIRMATIONS`];
   const confirmations = confirmationValue
     ? blockNumberSchema.parse(confirmationValue)
-    : chain === "TRON" ? 20n : 12n;
+    : 100n;
   if (confirmations < 1n || confirmations > 10_000n) {
     throw new Error(`${chain} confirmation depth must be between 1 and 10,000 blocks.`);
   }
-  return { chain, rpcUrl, treasuryAddress: address, normalizedAddress, startBlock, confirmations };
+  return { chain, rpcUrl, treasuryAddress: address, normalizedAddress, usdtContract, startBlock, confirmations };
 }
 
 export function getTreasuryMonitorStatus() {
@@ -136,6 +159,10 @@ export function getTreasuryMonitorStatus() {
         chain,
         configured: Boolean(config),
         treasuryAddress: config?.treasuryAddress ?? null,
+        assets: config ? [chain === "TRON" ? "TRX" : "BNB", ...(config.usdtContract ? [chain === "TRON" ? "USDT-TRC20" : "USDT-BEP20"] : [])] : [],
+        usdtContract: config?.usdtContract
+          ? chain === "TRON" ? formatTronAddress(config.usdtContract) : config.usdtContract
+          : null,
         startBlock: config?.startBlock.toString() ?? null,
         confirmations: config?.confirmations.toString() ?? null,
         status: config ? "READ_ONLY_MONITOR_CONFIGURED" : "NOT_CONFIGURED",
@@ -146,6 +173,8 @@ export function getTreasuryMonitorStatus() {
         chain,
         configured: false,
         treasuryAddress: null,
+        assets: [],
+        usdtContract: null,
         startBlock: null,
         confirmations: null,
         status: "CONFIGURATION_INVALID",
@@ -188,6 +217,7 @@ async function collectBnb(config: ChainConfig, cursor: bigint): Promise<{ head: 
   const from = cursor + 1n > config.startBlock ? cursor + 1n : config.startBlock;
   const scannedTo = safeHead < from ? cursor : (safeHead - from + 1n > maxBlocksPerSync ? from + maxBlocksPerSync - 1n : safeHead);
   const transfers: ObservedTransfer[] = [];
+  const scannedBlockHashes = new Map<string, string>();
 
   for (let number = from; number <= scannedTo; number += 1n) {
     const result = await postJson(config.rpcUrl, {
@@ -206,6 +236,7 @@ async function collectBnb(config: ChainConfig, cursor: bigint): Promise<{ head: 
     if (typeof blockHash !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(blockHash) || blockNumber !== number) {
       throw new Error(`BNB RPC returned inconsistent block ${number}.`);
     }
+    scannedBlockHashes.set(number.toString(), blockHash.toLowerCase());
 
     block.transactions.forEach((transaction, index) => {
       if (!isRecord(transaction) || typeof transaction.from !== "string" || typeof transaction.to !== "string") return;
@@ -241,6 +272,55 @@ async function collectBnb(config: ChainConfig, cursor: bigint): Promise<{ head: 
         typeof receipt.result.blockHash !== "string" ||
         receipt.result.blockHash.toLowerCase() !== transfer.blockHash.toLowerCase()) {
       transfers.splice(index, 1);
+    }
+  }
+  if (config.usdtContract && scannedTo >= from) {
+    const recipientTopic = `0x${config.normalizedAddress.slice(2).padStart(64, "0")}`;
+    const logsResult = await postJson(config.rpcUrl, {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "eth_getLogs",
+      params: [{
+        fromBlock: `0x${from.toString(16)}`,
+        toBlock: `0x${scannedTo.toString(16)}`,
+        address: config.usdtContract,
+        topics: [`0x${transferEventTopic}`, null, recipientTopic]
+      }]
+    });
+    if (!isRecord(logsResult) || logsResult.error || !Array.isArray(logsResult.result)) {
+      throw new Error("BNB RPC failed to return USDT transfer events.");
+    }
+    for (const log of logsResult.result) {
+      if (!isRecord(log) || typeof log.address !== "string" ||
+          normalizeBnbAddress(log.address) !== config.usdtContract ||
+          !Array.isArray(log.topics) || log.topics.length < 3 ||
+          String(log.topics[0]).replace(/^0x/i, "").toLowerCase() !== transferEventTopic) continue;
+      const blockNumber = parseHexInteger(log.blockNumber, "USDT event block number");
+      const blockHash = log.blockHash;
+      const transactionHash = log.transactionHash;
+      const logIndex = parseHexInteger(log.logIndex, "USDT event index");
+      const fromTopic = log.topics[1];
+      const toTopic = log.topics[2];
+      if (typeof blockHash !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(blockHash) ||
+          scannedBlockHashes.get(blockNumber.toString()) !== blockHash.toLowerCase() ||
+          typeof transactionHash !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(transactionHash) ||
+          typeof fromTopic !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(fromTopic) ||
+          typeof toTopic !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(toTopic) ||
+          `0x${toTopic.slice(-40).toLowerCase()}` !== config.normalizedAddress ||
+          logIndex > 1_147_483_647n) continue;
+      const amount = parseHexInteger(log.data, "USDT event amount");
+      if (amount === 0n) continue;
+      transfers.push({
+        chain: "BNB",
+        transactionHash,
+        transferIndex: 1_000_000_000 + Number(logIndex),
+        blockNumber,
+        blockHash,
+        fromAddress: `0x${fromTopic.slice(-40).toLowerCase()}`,
+        toAddress: config.normalizedAddress,
+        asset: "USDT-BEP20",
+        amountBaseUnits: amount.toString()
+      });
     }
   }
   return { head, transfers, scannedTo };
@@ -280,14 +360,14 @@ async function collectTron(config: ChainConfig, cursor: bigint): Promise<{ head:
     }
     const verifiedBlockHash = String(blockHash);
     const transactions = Array.isArray(result.transactions) ? result.transactions : [];
-    transactions.forEach((transaction, transactionIndex) => {
+    for (const [transactionIndex, transaction] of transactions.entries()) {
       if (!isRecord(transaction) || typeof transaction.txID !== "string" || !isRecord(transaction.raw_data) ||
           !Array.isArray(transaction.ret) ||
           transaction.ret.length === 0 ||
-          !transaction.ret.every((outcome) => isRecord(outcome) && outcome.contractRet === "SUCCESS")) return;
+          !transaction.ret.every((outcome) => isRecord(outcome) && outcome.contractRet === "SUCCESS")) continue;
       const transactionHash = transaction.txID;
       const contracts = transaction.raw_data.contract;
-      if (!Array.isArray(contracts)) return;
+      if (!Array.isArray(contracts)) continue;
       contracts.forEach((contract, contractIndex) => {
         if (!isRecord(contract) || contract.type !== "TransferContract" ||
             !isRecord(contract.parameter) || !isRecord(contract.parameter.value)) return;
@@ -310,7 +390,43 @@ async function collectTron(config: ChainConfig, cursor: bigint): Promise<{ head:
           amountBaseUnits: amount.toString()
         });
       });
-    });
+      if (!config.usdtContract || !contracts.some((contract) => {
+        if (!isRecord(contract) || contract.type !== "TriggerSmartContract" ||
+            !isRecord(contract.parameter) || !isRecord(contract.parameter.value) ||
+            typeof contract.parameter.value.contract_address !== "string") return false;
+        return matchesTronAddress(contract.parameter.value.contract_address, config.usdtContract as string);
+      })) continue;
+
+      const info = await postJson(tronBlockUrl(config.rpcUrl, "gettransactioninfobyid"), { value: transactionHash });
+      if (!isRecord(info) || info.blockNumber !== Number(number) || !isRecord(info.receipt) ||
+          info.receipt.result !== "SUCCESS" || !Array.isArray(info.log)) continue;
+      info.log.forEach((log, eventIndex) => {
+        if (!isRecord(log) || tronLogAddress(log.address) !== config.usdtContract ||
+            !Array.isArray(log.topics) || log.topics.length < 3 ||
+            String(log.topics[0]).replace(/^0x/i, "").toLowerCase() !== transferEventTopic) return;
+        const fromTopic = typeof log.topics[1] === "string" ? log.topics[1].replace(/^0x/i, "") : "";
+        const toTopic = typeof log.topics[2] === "string" ? log.topics[2].replace(/^0x/i, "") : "";
+        const data = typeof log.data === "string" ? log.data.replace(/^0x/i, "") : "";
+        if (!/^[0-9a-fA-F]{64}$/.test(fromTopic) || !/^[0-9a-fA-F]{64}$/.test(toTopic) ||
+            !/^[0-9a-fA-F]{1,64}$/.test(data)) return;
+        const fromAddress = normalizeTronAddress(`41${fromTopic.slice(-40)}`);
+        const toAddress = normalizeTronAddress(`41${toTopic.slice(-40)}`);
+        if (toAddress !== config.normalizedAddress) return;
+        const amount = BigInt(`0x${data}`);
+        if (amount === 0n) return;
+        transfers.push({
+          chain: "TRON",
+          transactionHash,
+          transferIndex: 1_000_000_000 + eventIndex,
+          blockNumber,
+          blockHash: verifiedBlockHash,
+          fromAddress: formatTronAddress(fromAddress),
+          toAddress: formatTronAddress(toAddress),
+          asset: "USDT-TRC20",
+          amountBaseUnits: amount.toString()
+        });
+      });
+    }
   }
   return { head, transfers, scannedTo };
 }

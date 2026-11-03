@@ -568,6 +568,11 @@
     }
     .brand-name { font: 700 17px "Space Grotesk", sans-serif; letter-spacing: 0; }
     .brand-sub { color: var(--rail-muted); font-size: 10px; letter-spacing: 1.1px; margin-top: 3px; display: none; }
+    .brand-mark.has-image { background: transparent; box-shadow: none; transform: none; }
+    .brand-mark.has-image #brandFallback { display: none; }
+    .brand-image { display: none; height: 100%; object-fit: contain; width: 100%; }
+    .brand-mark.has-image .brand-image { display: block; }
+    #removeLogoButton[hidden] { display: none; }
     .nav-caption { color: #7f9286; font-size: 10px; font-weight: 700; letter-spacing: 1.4px; padding: 13px 12px 8px; display: none; }
     .nav-list { display: grid; gap: 4px; }
     .nav-item {
@@ -1034,6 +1039,7 @@
       .role-control select { font-size: 10px; }
       .export-button { font-size: 0; min-width: 36px; padding: 0 9px; }
       .export-button::before { content: "CSV"; font-size: 10px; }
+      #uploadLogoButton, #removeLogoButton { font-size: 10px; min-height: 32px; padding: 0 8px; }
     }
     @media (max-width: 430px) {
       .metric-grid { gap: 8px; }
@@ -1055,12 +1061,13 @@
   <div class="app-shell">
     <aside class="sidebar" aria-label="Main navigation">
       <div class="brand">
-        <div class="brand-mark" aria-hidden="true">R</div>
+        <div class="brand-mark" id="brandMark" aria-hidden="true"><span id="brandFallback">R</span><img class="brand-image" id="brandImage" alt=""></div>
         <div><div class="brand-name">ROBOT GRID OS</div><div class="brand-sub">WORKER CONTROL PREVIEW</div></div>
       </div>
       <nav class="nav-list" aria-label="Workspace">
         <button class="nav-item" data-view="overview" aria-current="page"><span class="nav-glyph">O</span><span class="nav-label">Overview</span></button>
         <button class="nav-item" data-view="grids"><span class="nav-glyph">G</span><span class="nav-label">Grid Management</span><span class="nav-count">7</span></button>
+        <button class="nav-item" data-view="tasks"><span class="nav-glyph">WT</span><span class="nav-label">Grid Tasks</span></button>
         <button class="nav-item" data-view="workers"><span class="nav-glyph">AI</span><span class="nav-label">AI Workers</span></button>
         <button class="nav-item" data-view="opportunities"><span class="nav-glyph">OG</span><span class="nav-label">Opportunity Grid</span></button>
         <button class="nav-item" data-view="wallet"><span class="nav-glyph">W</span><span class="nav-label">Wallet Center</span></button>
@@ -1074,6 +1081,7 @@
         <button class="nav-item" data-view="horizon"><span class="nav-glyph">∞</span><span class="nav-label">Beyond AI</span></button>
       </nav>
       <nav class="nav-list" aria-label="Operations">
+        <button class="nav-item" data-view="approvals"><span class="nav-glyph">A</span><span class="nav-label">Approvals</span></button>
         <button class="nav-item" data-view="governance"><span class="nav-glyph">✓</span><span class="nav-label">Governance</span></button>
         <button class="nav-item" data-view="audit"><span class="nav-glyph">≡</span><span class="nav-label">Audit Trail</span></button>
       </nav>
@@ -1089,6 +1097,9 @@
           <span class="panel-meta" id="currentUserStatus">Signed out</span>
           <button class="quiet-button" id="registerButton" type="button">Register</button>
           <button class="quiet-button" id="authButton" type="button">Sign in</button>
+          <button class="quiet-button" id="uploadLogoButton" type="button" title="Upload a PNG, JPEG, or WebP logo up to 1 MB">Upload logo</button>
+          <input id="brandLogoInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+          <button class="quiet-button" id="removeLogoButton" type="button" hidden>Reset logo</button>
         </div>
       </header>
       <main class="main-content" id="mainContent" tabindex="-1"></main>
@@ -1116,7 +1127,8 @@
       { id: "synthetic-reality", apiName: "synthetic_reality", name: "Synthetic Reality", group: "Future experience" },
       { id: "blockchain", apiName: "blockchain_trust", name: "Blockchain Trust Layer", group: "Trust" },
       { id: "collective-intelligence", apiName: "collective_intelligence", name: "Collective Intelligence", group: "Intelligence" },
-      { id: "admin-control-center", apiName: "admin_control_center", name: "Admin Control Center", group: "Operations" }
+      { id: "admin-control-center", apiName: "admin_control_center", name: "Admin Control Center", group: "Operations" },
+      { id: "grid-tasks", apiName: "grid_tasks", name: "Grid Tasks", group: "Operations" }
     ];
     const gridLayers = [
       {
@@ -1255,13 +1267,14 @@
     };
     const viewTitles = {
       overview: "Command Center", grids: "Grid Management", workers: "AI Workers",
-      opportunities: "Opportunity Grid",
+      tasks: "Grid Tasks", opportunities: "Opportunity Grid",
       wallet: "Wallet Center", ledger: "Ledger Center", analytics: "Analytics", reserves: "Reserve Stress Test",
-      support: "Robot Support", governance: "Governance", audit: "Audit Trail",
+      support: "Robot Support", approvals: "Approvals", governance: "Governance", audit: "Audit Trail",
       studio: "Live Studio", communication: "Communication Grid", correction: "Correction Grid AI",
       horizon: "Beyond AI"
     };
     const mainContent = document.getElementById("mainContent");
+    const brandLogoStorageKey = "cedars.command-center.logo";
     let activeView = "overview";
     let accessToken = null;
     let identityToken = null;
@@ -1271,11 +1284,15 @@
     let gridConfigs = null;
     let gridConfigError = null;
     let workerConfigs = null;
+    let gridTasks = null;
+    let gridTaskError = null;
     let moduleFilterState = { search: "", status: "all" };
     let workerFilterState = { search: "", status: "all" };
     let gridFilterState = { search: "", status: "all" };
     let operationsSummary = null;
     let auditEvents = null;
+    let approvalRequests = null;
+    let approvalError = null;
     let auditSearchValue = "";
     let treasuryMonitorData = null;
     let treasuryMonitorError = null;
@@ -1323,6 +1340,24 @@
       toast.classList.add("visible");
       window.clearTimeout(toastTimer);
       toastTimer = window.setTimeout(() => toast.classList.remove("visible"), 3000);
+    }
+
+    function applyBrandLogo(dataUrl) {
+      const brandMark = document.getElementById("brandMark");
+      const brandImage = document.getElementById("brandImage");
+      brandMark.classList.toggle("has-image", Boolean(dataUrl));
+      if (dataUrl) brandImage.src = dataUrl;
+      else brandImage.removeAttribute("src");
+      document.getElementById("removeLogoButton").hidden = !dataUrl;
+    }
+
+    function restoreBrandLogo() {
+      try {
+        const savedLogo = localStorage.getItem(brandLogoStorageKey);
+        if (savedLogo && /^data:image\/(png|jpeg|webp);base64,/.test(savedLogo)) applyBrandLogo(savedLogo);
+      } catch {
+        showToast("Saved logo is unavailable in this browser.");
+      }
     }
 
     function randomBase64Url(size = 32) {
@@ -1528,7 +1563,9 @@
       if (view === "overview" || view === "horizon" || view === "opportunities") return true;
       if (view === "grids") return true;
       if (!accessToken) return false;
+      if (view === "tasks") return true;
       if (view === "workers") return canManagePlatform();
+      if (view === "approvals") return ["FOUNDER", "SUPER_ADMIN", "FINANCE_ADMIN", "COMPLIANCE_OFFICER"].includes(currentRole);
       if (view === "wallet" || view === "ledger") return ["FOUNDER", "SUPER_ADMIN", "FINANCE_ADMIN", "COMPLIANCE_OFFICER"].includes(currentRole);
       if (view === "studio") return true;
       if (view === "communication") return true;
@@ -1705,9 +1742,15 @@
           method: "PUT",
           body: JSON.stringify({ desiredState, reason })
         });
+        if (result.approvalRequired) {
+          await refreshApprovals();
+          render(false);
+          showToast("Grid activation requested. It remains unchanged until an independent approver decides.");
+          return;
+        }
         gridConfigs = gridConfigs?.map((grid) => grid.id === gridId ? { ...grid, ...result.grid } : grid) ?? [result.grid];
         render(false);
-        showToast("Desired state saved and audited. Runtime remains disconnected.");
+        showToast("Safe grid state applied and audited. Runtime remains disconnected.");
       } catch (error) {
         render(false);
         showToast(error.message);
@@ -1800,6 +1843,58 @@
         </div>`;
     }
 
+    function gridTaskRows() {
+      if (gridTaskError) return `<tr><td colspan="7">${escapeHtml(gridTaskError)}</td></tr>`;
+      if (!gridTasks) return `<tr><td colspan="7">Loading Grid Tasks…</td></tr>`;
+      if (!gridTasks.length) return `<tr><td colspan="7">No Grid Tasks have been submitted.</td></tr>`;
+
+      return gridTasks.map((task) => {
+        const worker = workerConfigs?.find((item) => item.id === task.workerId);
+        const workerName = worker?.name ?? task.workerId ?? "Unassigned";
+        let actions = `<span class="value-muted">Awaiting next step</span>`;
+        if (canManagePlatform() && task.status === "OPEN") {
+          const workerOptions = workerConfigs?.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("") ?? "";
+          actions = `<div class="task-actions"><select aria-label="Worker for ${escapeHtml(task.title)}" data-task-worker="${escapeHtml(task.id)}"><option value="">Choose Worker</option>${workerOptions}</select><button class="terminal-action" type="button" data-grid-task-action="assign" data-task-id="${escapeHtml(task.id)}">Assign</button></div>`;
+        } else if (canManagePlatform() && task.status === "ASSIGNED") {
+          actions = `<button class="terminal-action" type="button" data-grid-task-action="start" data-task-id="${escapeHtml(task.id)}">Start work</button>`;
+        } else if (canManagePlatform() && task.status === "IN_PROGRESS") {
+          actions = `<div class="task-actions"><textarea aria-label="Delivery evidence for ${escapeHtml(task.title)}" data-task-evidence="${escapeHtml(task.id)}" maxlength="10000" placeholder="Evidence reference and review notes"></textarea><button class="terminal-action" type="button" data-grid-task-action="deliver" data-task-id="${escapeHtml(task.id)}">Record delivery</button></div>`;
+        } else if (task.canAccept && task.status === "DELIVERED") {
+          actions = `<button class="primary-button" type="button" data-grid-task-action="accept" data-task-id="${escapeHtml(task.id)}">Accept delivery</button>`;
+        }
+        if ((task.canAccept || canManagePlatform()) && ["OPEN", "ASSIGNED"].includes(task.status)) {
+          actions += ` <button class="quiet-button" type="button" data-grid-task-action="cancel" data-task-id="${escapeHtml(task.id)}">Cancel</button>`;
+        }
+        const evidence = task.deliveryEvidence
+          ? `<details><summary>Delivery evidence</summary><p>${escapeHtml(task.deliveryEvidence)}</p></details>`
+          : "—";
+        const statusClass = task.status === "ACCEPTED" ? "status-resolved" : task.status === "CANCELLED" ? "status-paused" : "status-open";
+        return `<tr><td>${escapeHtml(task.gridId)}</td><td><strong>${escapeHtml(task.title)}</strong><small class="task-description">${escapeHtml(task.description)}</small><small class="task-description">Accept when: ${escapeHtml(task.acceptanceCriteria)}</small>${evidence}</td><td>${escapeHtml(task.agreedAmount)} ${escapeHtml(task.currency)}</td><td>${escapeHtml(workerName)}</td><td><span class="status-pill ${statusClass}">${escapeHtml(task.status)}</span></td><td><span class="status-pill status-paused">NOT RECORDED</span></td><td>${actions}</td></tr>`;
+      }).join("");
+    }
+
+    function gridTasksView() {
+      const gridOptions = gridLayers.flatMap((layer) => layer.grids)
+        .map(([id, name]) => `<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`).join("");
+      return `${heading("Grid Tasks", "Turn verified buyer needs into scoped work, accountable delivery, and customer acceptance.", "BUYER NEED → GRID → WORKER → PROOF")}
+        ${notice("<strong>Work-order pilot.</strong> Task acceptance is not payment. Settlement is not connected; no buyer balance, revenue, or payout is created by this workflow.")}
+        ${accessToken ? `<section class="panel"><div class="panel-header"><h2 class="panel-title">New buyer task</h2><span class="panel-meta">Price and acceptance criteria agreed before work</span></div>
+          <form id="gridTaskCreateForm" class="form-grid">
+            <div class="field"><label for="gridTaskGrid">Grid</label><select id="gridTaskGrid" name="gridId" required>${gridOptions}</select></div>
+            <div class="field"><label for="gridTaskTitle">Task title</label><input id="gridTaskTitle" name="title" minlength="3" maxlength="160" required></div>
+            <div class="field"><label for="gridTaskPrice">Agreed price</label><input id="gridTaskPrice" name="agreedAmount" inputmode="decimal" pattern="[0-9]+([.][0-9]{1,8})?" placeholder="1.00" required><span class="form-hint">Indicative only until invoicing and settlement exist.</span></div>
+            <div class="field"><label for="gridTaskCurrency">Currency code</label><input id="gridTaskCurrency" name="currency" value="USD" minlength="3" maxlength="3" pattern="[A-Z]{3}" required></div>
+            <div class="field"><label for="gridTaskDescription">Buyer need and scope</label><textarea id="gridTaskDescription" name="description" minlength="10" maxlength="5000" required></textarea></div>
+            <div class="field"><label for="gridTaskAcceptance">Acceptance criteria</label><textarea id="gridTaskAcceptance" name="acceptanceCriteria" minlength="10" maxlength="5000" required></textarea></div>
+            <div class="form-footer"><button class="primary-button" type="submit">Submit Grid Task</button><span class="form-hint">Only create tasks with a real buyer, agreed terms, and lawful delivery scope.</span></div>
+          </form>
+        </section>
+        <section class="panel"><div class="panel-header"><h2 class="panel-title">Task queue</h2><span class="panel-meta">${gridTasks ? `${gridTasks.length} visible · settlement not connected` : "Loading persisted work orders"}</span></div>
+          <div class="form-grid"><div class="field"><label for="gridTaskActionReason">Reason for a task state change</label><input id="gridTaskActionReason" minlength="8" maxlength="500" placeholder="Required for the audit record"></div><div class="form-footer"><span class="form-hint">Admin actions are audited. Buyers can accept only their own delivered work.</span></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Grid</th><th>Buyer task & evidence</th><th>Agreed price</th><th>Worker</th><th>Work status</th><th>Settlement</th><th>Action</th></tr></thead><tbody>${gridTaskRows()}</tbody></table></div>
+        </section>` : notice("<strong>Sign in required.</strong> Authenticate to create a buyer task or view your work orders.")}`;
+    }
+
     function gridsView() {
       const totalGrids = gridLayers.reduce((total, layer) => total + layer.grids.length, 0);
       const activeGrids = gridConfigs
@@ -1889,7 +1984,7 @@
         <div class="section-label">Operating safeguards <span>Required before deployment</span></div>
         <div class="split-panels">
           <section class="panel"><div class="panel-header"><h2 class="panel-title">Human sovereignty</h2></div><div class="list-rows">
-            <div class="list-row"><span><strong>Approval policy</strong><small>Human permission before consequential actions</small></span><span class="status-pill status-paused">Not configured</span></div>
+            <div class="list-row"><span><strong>Approval policy</strong><small>Independent review for module, worker, and grid activation</small></span><span class="status-pill status-paused">Control changes only</span></div>
             <div class="list-row"><span><strong>Escalation & incident response</strong><small>Route failures and high-risk work to people</small></span><span class="status-pill status-paused">Not configured</span></div>
             <div class="list-row"><span><strong>Emergency kill switch</strong><small>Tested stop path with named owner</small></span><span class="status-pill status-paused">Not configured</span></div>
           </div></section>
@@ -2531,9 +2626,44 @@
         </section>`;
     }
 
+    function approvalsView() {
+      const requests = approvalRequests || [];
+      const pending = requests.filter((request) => request.status === "PENDING");
+      const history = requests.filter((request) => request.status !== "PENDING");
+      const renderRequest = (request) => {
+        const approvedRoles = new Set(request.decisions.filter((decision) => decision.decision === "APPROVE").map((decision) => decision.reviewerRole));
+        const decisionLine = request.requiredApproverRoles.map((role) => `${role}: ${approvedRoles.has(role) ? "approved" : "pending"}`).join(" · ");
+        const canDecide = request.status === "PENDING" && !request.requesterIsActor &&
+          request.requiredApproverRoles.includes(currentRole) &&
+          !request.decisions.some((decision) => decision.reviewerRole === currentRole);
+        const actions = canDecide ? `<label class="field"><span>Decision reason</span><textarea data-approval-reason maxlength="500" minlength="8" placeholder="Required audit reason"></textarea></label>
+          <div class="toolbar"><button class="primary-button" type="button" data-approval-decision="APPROVE" data-approval-id="${escapeHtml(request.id)}">Approve</button><button class="quiet-button" type="button" data-approval-decision="REJECT" data-approval-id="${escapeHtml(request.id)}">Reject</button></div>`
+          : request.status === "PENDING" ? `<span class="form-hint">Awaiting an eligible independent reviewer.</span>` : "";
+        const decisionHistory = request.decisions.map((decision) => `${escapeHtml(decision.reviewerRole)} ${escapeHtml(decision.decision.toLowerCase())}: ${escapeHtml(decision.reason)}`).join(" · ");
+        return `<article class="panel" data-approval-card="${escapeHtml(request.id)}">
+          <div class="panel-header"><h3 class="panel-title">${escapeHtml(request.scope.replaceAll("_", " "))}</h3><span class="panel-meta">${escapeHtml(request.status)}</span></div>
+          <div class="list-rows">
+            <div class="list-row"><span><strong>Target</strong><small>${escapeHtml(request.entityType)} · ${escapeHtml(request.entityId)}</small></span><span class="value-muted">Requested by ${escapeHtml(request.requestedByRole)}</span></div>
+            <div class="list-row"><span><strong>Change</strong><small>${escapeHtml(JSON.stringify(request.expectedState))} → ${escapeHtml(JSON.stringify(request.proposedState))}</small></span></div>
+            <div class="list-row"><span><strong>Request reason</strong><small>${escapeHtml(request.reason)}</small></span></div>
+            <div class="list-row"><span><strong>Required reviews</strong><small>${escapeHtml(decisionLine)}</small></span></div>
+            ${decisionHistory ? `<div class="list-row"><span><strong>Decision history</strong><small>${decisionHistory}</small></span></div>` : ""}
+          </div>${actions}
+        </article>`;
+      };
+      return `${heading("Approvals", "Review high-impact control changes independently. Decisions and applied changes are audited.", "GOVERNANCE CONTROL")}
+        ${notice("<strong>Financial execution remains disabled.</strong> Approving a control change does not enable payment, settlement, or worker execution. Emergency OFF and maintenance actions remain immediate.")}
+        <section><div class="panel-header"><h2 class="panel-title">Pending review</h2><span class="panel-meta">${pending.length} requests</span></div>
+          ${approvalError ? `<div class="empty-note">${escapeHtml(approvalError)}</div>` : pending.length ? `<div class="grid-terminals">${pending.map(renderRequest).join("")}</div>` : `<div class="empty-note">${approvalRequests === null ? "Loading approval requests…" : accessToken ? "No pending approvals." : "Sign in with an authorized reviewer account."}</div>`}
+        </section>
+        <section style="margin-top:24px"><div class="panel-header"><h2 class="panel-title">Recent decisions</h2><span class="panel-meta">${history.length} requests</span></div>
+          ${history.length ? `<div class="grid-terminals">${history.map(renderRequest).join("")}</div>` : `<div class="empty-note">No decisions recorded.</div>`}
+        </section>`;
+    }
+
     function governanceView() {
       return `${heading("Governance", "Scale depends on accountable ownership, privacy, safety and fair attribution—not technology alone.", "PEOPLE & TRUST")}
-        ${notice("<strong>Proposed controls.</strong> No identity, permissions, policy engine, scoring system or data vault is implemented in this prototype.")}
+        ${notice("<strong>Control approvals are not AML controls.</strong> The API enforces role checks and independent approval for selected system changes; identity screening, transaction monitoring, and payment controls are not implemented.")}
         <div class="section-label">Principles & controls <span>Design requirements</span></div>
         <div class="split-panels">
           <section class="panel"><div class="panel-header"><h2 class="panel-title">Human agency</h2><span class="panel-meta">Ownership & decision rights</span></div><div class="list-rows">
@@ -2579,10 +2709,12 @@
     const viewRenderers = {
       overview: overviewView,
       grids: gridsView,
+      tasks: gridTasksView,
       opportunities: opportunityGridView,
       wallet: walletView,
       ledger: ledgerView,
       audit: auditView,
+      approvals: approvalsView,
       studio: studioView,
       communication: communicationView,
       correction: correctionView
@@ -2648,9 +2780,11 @@
         refreshModules();
         refreshGrids();
       }
+      if (activeView === "tasks" && accessToken) refreshGridTasks();
       if (activeView === "workers" && accessToken) refreshWorkers();
       if ((activeView === "wallet" || activeView === "ledger") && accessToken) refreshTreasury();
       if (activeView === "audit" && accessToken) refreshAuditEvents();
+      if (activeView === "approvals" && accessToken) refreshApprovals();
     }
 
     function formatBaseUnits(value, decimals) {
@@ -2764,6 +2898,67 @@
       }
     }
 
+    async function refreshGridTasks() {
+      try {
+        const result = await apiFetch("/api/tasks");
+        gridTasks = result.tasks;
+        gridTaskError = null;
+        currentRole = result.actorRole;
+        if (canManagePlatform()) {
+          const workerResult = await apiFetch("/api/workers");
+          workerConfigs = workerResult.workers;
+        } else {
+          workerConfigs = null;
+        }
+        render(false);
+      } catch (error) {
+        gridTaskError = error.message;
+        const status = document.getElementById("gridTaskStatus");
+        if (status) status.textContent = error.message;
+        render(false);
+      }
+    }
+
+    async function submitGridTaskAction(button) {
+      const taskId = button.dataset.taskId;
+      const action = button.dataset.gridTaskAction;
+      const reason = document.getElementById("gridTaskActionReason")?.value.trim();
+      if (!taskId || !reason || reason.length < 8) {
+        showToast("Enter an audit reason of at least 8 characters.");
+        return;
+      }
+
+      const update = { action, reason };
+      if (action === "assign") {
+        update.workerId = document.querySelector(`[data-task-worker="${CSS.escape(taskId)}"]`)?.value;
+        if (!update.workerId) {
+          showToast("Choose a Worker before assigning the task.");
+          return;
+        }
+      }
+      if (action === "deliver") {
+        update.evidence = document.querySelector(`[data-task-evidence="${CSS.escape(taskId)}"]`)?.value.trim();
+        if (!update.evidence || update.evidence.length < 10) {
+          showToast("Record delivery evidence of at least 10 characters.");
+          return;
+        }
+      }
+
+      button.disabled = true;
+      try {
+        const result = await apiFetch(`/api/tasks/${encodeURIComponent(taskId)}`, {
+          method: "PUT",
+          body: JSON.stringify(update)
+        });
+        if (result.actorRole) currentRole = result.actorRole;
+        await refreshGridTasks();
+        showToast(`Task updated to ${result.task.status}. Settlement remains unrecorded.`);
+      } catch (error) {
+        if (button.isConnected) button.disabled = false;
+        showToast(error.message);
+      }
+    }
+
     async function refreshOperationsSummary() {
       try {
         operationsSummary = await apiFetch("/api/operations/summary");
@@ -2853,6 +3048,20 @@
       }
     }
 
+    async function refreshApprovals() {
+      try {
+        const result = await apiFetch("/api/admin/approvals");
+        approvalRequests = result.approvals;
+        approvalError = null;
+        currentRole = result.actorRole;
+        render(false);
+      } catch (error) {
+        approvalRequests = null;
+        approvalError = error.message;
+        render(false);
+      }
+    }
+
     let readinessTimer;
     async function refreshReadiness() {
       window.clearTimeout(readinessTimer);
@@ -2926,6 +3135,12 @@
         const gridId = gridToggle.dataset.gridToggle;
         const currentState = gridConfigs?.find((grid) => grid.id === gridId)?.desiredState ?? gridPreviewStates.get(gridId)?.state ?? "STANDBY";
         await setGridDesiredState(gridId, currentState === "WORKING" ? "STANDBY" : "WORKING", gridToggle);
+        return;
+      }
+
+      const taskAction = event.target.closest("[data-grid-task-action]");
+      if (taskAction) {
+        await submitGridTaskAction(taskAction);
         return;
       }
 
@@ -3010,6 +3225,40 @@
       const auditExport = event.target.closest("[data-audit-export]");
       if (auditExport) {
         exportAuditCsv();
+        return;
+      }
+
+      const approvalButton = event.target.closest("[data-approval-decision]");
+      if (approvalButton) {
+        const requestId = approvalButton.dataset.approvalId;
+        const request = approvalRequests?.find((item) => item.id === requestId);
+        const card = approvalButton.closest("[data-approval-card]");
+        const reason = card?.querySelector("[data-approval-reason]")?.value.trim();
+        if (!requestId || !request || !reason || reason.length < 8) {
+          showToast("Enter an audit reason of at least 8 characters.");
+          return;
+        }
+        card.querySelectorAll("button").forEach((button) => { button.disabled = true; });
+        try {
+          const result = await apiFetch(`/api/admin/approvals/${encodeURIComponent(requestId)}`, {
+            method: "PUT",
+            body: JSON.stringify({ decision: approvalButton.dataset.approvalDecision, reason })
+          });
+          await refreshApprovals();
+          if (request.entityType === "FEATURE_FLAG") await refreshModules();
+          if (request.entityType === "WORKER_CONFIG") await refreshWorkers();
+          if (request.entityType === "GRID_CONFIG") await refreshGrids();
+          if (canView("audit")) await refreshAuditEvents();
+          const decision = result.approval;
+          showToast(decision.applied
+            ? "Approval recorded. The control change is applied and audited."
+            : decision.status === "REJECTED"
+              ? "Decision recorded. The request was rejected or its target state changed."
+              : "Approval recorded. Additional required review is pending.");
+        } catch (error) {
+          await refreshApprovals();
+          showToast(error.message);
+        }
         return;
       }
 
@@ -3125,12 +3374,17 @@
         if (workerSwitch) workerSwitch.disabled = true;
         if (workerAction) workerAction.disabled = true;
         try {
-          await apiFetch(`/api/admin/workers/${encodeURIComponent(worker.id)}`, {
+          const result = await apiFetch(`/api/admin/workers/${encodeURIComponent(worker.id)}`, {
             method: "PUT",
             body: JSON.stringify({ enabled, desiredInstances, reason })
           });
           await refreshWorkers();
-          showToast(`${worker.name} configuration saved and audit recorded. Runtime remains disconnected.`);
+          if (result.approvalRequired) {
+            await refreshApprovals();
+            showToast(`${worker.name} change requested. It remains unchanged pending independent approval.`);
+          } else {
+            showToast(`${worker.name} safe state change saved and audited. Runtime remains disconnected.`);
+          }
         } catch (error) {
           if (workerSwitch) workerSwitch.disabled = false;
           if (workerAction) workerAction.disabled = false;
@@ -3155,13 +3409,18 @@
         }
         moduleSwitch.disabled = true;
         try {
-          await apiFetch(`/api/admin/modules/${encodeURIComponent(module.apiName)}`, {
+          const result = await apiFetch(`/api/admin/modules/${encodeURIComponent(module.apiName)}`, {
             method: "PUT",
             body: JSON.stringify({ enabled: !flag.enabled, reason })
           });
           await refreshModules();
           await refreshAuditEvents();
-          showToast(`${module.name} state saved and audit recorded.`);
+          if (result.approvalRequired) {
+            await refreshApprovals();
+            showToast(`${module.name} activation requested. It remains OFF pending independent approval.`);
+          } else {
+            showToast(`${module.name} state saved and audited.`);
+          }
         } catch (error) {
           moduleSwitch.disabled = false;
           showToast(error.message);
@@ -3169,7 +3428,28 @@
       }
     });
 
-    document.addEventListener("submit", (event) => {
+    document.addEventListener("submit", async (event) => {
+      if (event.target.id === "gridTaskCreateForm") {
+        event.preventDefault();
+        const form = event.target;
+        const button = form.querySelector("button[type='submit']");
+        const task = Object.fromEntries(new FormData(form).entries());
+        button.disabled = true;
+        try {
+          const result = await apiFetch("/api/tasks", {
+            method: "POST",
+            body: JSON.stringify(task)
+          });
+          if (result.actorRole) currentRole = result.actorRole;
+          form.reset();
+          await refreshGridTasks();
+          showToast("Grid Task recorded. No payment or Worker execution was started.");
+        } catch (error) {
+          if (button.isConnected) button.disabled = false;
+          showToast(error.message);
+        }
+        return;
+      }
       if (event.target.id === "opportunityMapForm") {
         event.preventDefault();
         const type = document.getElementById("opportunityType").value;
@@ -3252,6 +3532,37 @@
     });
 
     document.addEventListener("change", (event) => {
+      if (event.target.id === "brandLogoInput") {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        if (!file) return;
+        if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+          showToast("Choose a PNG, JPEG, or WebP image.");
+          return;
+        }
+        if (file.size > 1024 * 1024) {
+          showToast("Logo files must be 1 MB or smaller.");
+          return;
+        }
+        const reader = new FileReader();
+        reader.addEventListener("load", () => {
+          const dataUrl = String(reader.result ?? "");
+          if (!/^data:image\/(png|jpeg|webp);base64,/.test(dataUrl)) {
+            showToast("The selected image could not be read.");
+            return;
+          }
+          try {
+            localStorage.setItem(brandLogoStorageKey, dataUrl);
+            applyBrandLogo(dataUrl);
+            showToast("Logo saved in this browser only.");
+          } catch {
+            showToast("Could not save this logo in browser storage.");
+          }
+        });
+        reader.addEventListener("error", () => showToast("The selected image could not be read."));
+        reader.readAsDataURL(file);
+        return;
+      }
       if (event.target.id === "demoAccountSelector") {
         const account = demoMemberAccounts.find((item) => item.id === event.target.value);
         if (!account) return;
@@ -3311,7 +3622,21 @@
       }
     });
 
+    document.getElementById("uploadLogoButton").addEventListener("click", () => {
+      document.getElementById("brandLogoInput").click();
+    });
+    document.getElementById("removeLogoButton").addEventListener("click", () => {
+      try {
+        localStorage.removeItem(brandLogoStorageKey);
+        applyBrandLogo(null);
+        showToast("Logo reset in this browser.");
+      } catch {
+        showToast("Could not reset the saved logo.");
+      }
+    });
+
     syncCommunityMembership();
+    restoreBrandLogo();
     render();
     finishSignIn().catch((error) => showToast(error.message));
   </script>

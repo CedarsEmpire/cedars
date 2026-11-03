@@ -50,6 +50,17 @@ async function main() {
   }
   token = localToken.body.access_token;
 
+  const localApprover = await request("/api/auth/local-approver-token", {
+    method: "POST",
+    headers: { Origin: new URL(baseUrl).origin }
+  });
+  if (!localApprover.ok || localApprover.status !== 200 ||
+      typeof localApprover.body !== "object" || localApprover.body === null ||
+      !("access_token" in localApprover.body) || typeof localApprover.body.access_token !== "string") {
+    throw new Error(`Local reviewer sign-in check failed (${localApprover.status}).`);
+  }
+  const approverToken = localApprover.body.access_token;
+
   const modules = await request("/api/modules", {
     headers: { Authorization: `Bearer ${token}` }
   });
@@ -73,6 +84,82 @@ async function main() {
       typeof grids.body !== "object" || grids.body === null ||
       !("grids" in grids.body) || !Array.isArray(grids.body.grids)) {
     throw new Error(`Grids check failed: ${JSON.stringify(grids)}`);
+  }
+
+  const gridTasksEnable = await request("/api/admin/modules/grid_tasks", {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ enabled: true, reason: "Smoke test restricted task access" })
+  });
+  const approvalBody = gridTasksEnable.body as { approval?: { id?: string }; approvalRequired?: boolean };
+  if (gridTasksEnable.status !== 202 || approvalBody.approvalRequired !== true || !approvalBody.approval?.id) {
+    throw new Error(`Grid Tasks activation did not enter approval: ${JSON.stringify(gridTasksEnable)}`);
+  }
+  const approvalDecision = await request(`/api/admin/approvals/${encodeURIComponent(approvalBody.approval.id)}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${approverToken}` },
+    body: JSON.stringify({ decision: "APPROVE", reason: "Smoke test independent review" })
+  });
+  const decisionBody = approvalDecision.body as { approval?: { applied?: boolean } };
+  if (!approvalDecision.ok || decisionBody.approval?.applied !== true) {
+    throw new Error(`Grid Tasks independent approval failed: ${JSON.stringify(approvalDecision)}`);
+  }
+
+  const taskCreate = await request("/api/tasks", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      gridId: "research",
+      title: "Smoke test paid work order",
+      description: "Validate the internal Grid Task API lifecycle.",
+      acceptanceCriteria: "Task is persisted, assigned, and remains unpaid.",
+      agreedAmount: "1.00",
+      currency: "USD"
+    })
+  });
+  const createdTaskBody = taskCreate.body as { task?: { id?: string; status?: string; settlementStatus?: string } };
+  if (!taskCreate.ok || taskCreate.status !== 201 || !createdTaskBody.task?.id ||
+      createdTaskBody.task.status !== "OPEN" || createdTaskBody.task.settlementStatus !== "NOT_RECORDED") {
+    throw new Error(`Grid Task creation check failed: ${JSON.stringify(taskCreate)}`);
+  }
+  const taskId = createdTaskBody.task.id;
+
+  const taskList = await request("/api/tasks", { headers: { Authorization: `Bearer ${token}` } });
+  const taskListBody = taskList.body as { tasks?: Array<{ id?: string }> };
+  if (!taskList.ok || taskList.status !== 200 || !taskListBody.tasks?.some((task) => task.id === taskId)) {
+    throw new Error(`Grid Task listing check failed: ${JSON.stringify(taskList)}`);
+  }
+
+  const taskAssign = await request(`/api/tasks/${encodeURIComponent(taskId)}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ action: "assign", workerId: "research", reason: "Smoke test task assignment" })
+  });
+  if (!taskAssign.ok || taskAssign.status !== 200 ||
+      typeof taskAssign.body !== "object" || taskAssign.body === null ||
+      !("task" in taskAssign.body) || taskAssign.body.task.status !== "ASSIGNED") {
+    throw new Error(`Grid Task assignment check failed: ${JSON.stringify(taskAssign)}`);
+  }
+
+  const taskStart = await request(`/api/tasks/${encodeURIComponent(taskId)}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ action: "start", reason: "Smoke test start task" })
+  });
+  if (!taskStart.ok || taskStart.status !== 200 ||
+      typeof taskStart.body !== "object" || taskStart.body === null ||
+      !("task" in taskStart.body) || taskStart.body.task.status !== "IN_PROGRESS" ||
+      taskStart.body.task.settlementStatus !== "NOT_RECORDED") {
+    throw new Error(`Grid Task start check failed: ${JSON.stringify(taskStart)}`);
+  }
+
+  const gridTasksDisable = await request("/api/admin/modules/grid_tasks", {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ enabled: false, reason: "Smoke test closes task access" })
+  });
+  if (!gridTasksDisable.ok || gridTasksDisable.status !== 200) {
+    throw new Error(`Grid Tasks shutdown failed: ${JSON.stringify(gridTasksDisable)}`);
   }
 
   const readiness = await request("/api/ready");
@@ -120,9 +207,15 @@ async function main() {
     health,
     authConfig: authConfig.status,
     localSignIn: localToken.status,
+    localApproverSignIn: localApprover.status,
     modules: modules.status,
     workers: workers.status,
     grids: grids.status,
+    gridTaskCreate: taskCreate.status,
+    gridTaskList: taskList.status,
+    gridTaskAssign: taskAssign.status,
+    gridTaskStart: taskStart.status,
+    approval: approvalDecision.status,
     readiness: readiness.status,
     summary: summary.status,
     audit: audit.status,

@@ -4,6 +4,7 @@ import { AuthorizationError } from "../auth/authorization.js";
 import { prisma } from "../db.js";
 import { workerCatalog } from "./worker-catalog.js";
 import { getRuntimeMode } from "./runtime-mode.js";
+import { requestControlApproval } from "./approvals.js";
 
 export const workerIdSchema = z.string().refine(
   (value) => workerCatalog.some((worker) => worker.id === value),
@@ -54,6 +55,27 @@ export async function updateWorker(input: {
   const worker = workerCatalog.find((item) => item.id === input.workerId);
   if (!worker) throw new Error("Worker is not in the supported catalog.");
   const runtimeMode = getRuntimeMode();
+  const current = await prisma.workerConfig.findUnique({ where: { id: input.workerId } });
+  const currentEnabled = current?.enabled ?? false;
+  const currentInstances = current?.desiredInstances ?? 1;
+
+  if (input.enabled && (!currentEnabled || input.desiredInstances > currentInstances)) {
+    const approval = await requestControlApproval({
+      actorSubject: input.actorSubject,
+      actorRole: input.actorRole,
+      scope: !currentEnabled ? "WORKER_ENABLE" : "WORKER_SCALE_UP",
+      entityType: "WORKER_CONFIG",
+      entityId: input.workerId,
+      expectedState: { enabled: currentEnabled, desiredInstances: currentInstances },
+      proposedState: { enabled: input.enabled, desiredInstances: input.desiredInstances },
+      reason: input.reason
+    });
+    return { approvalRequired: true as const, approval };
+  }
+
+  const desiredInstances = !input.enabled && input.desiredInstances > currentInstances
+    ? currentInstances
+    : input.desiredInstances;
 
   return prisma.$transaction(async (transaction) => {
     const actor = await transaction.user.upsert({
@@ -67,12 +89,12 @@ export async function updateWorker(input: {
       create: {
         id: input.workerId,
         enabled: input.enabled,
-        desiredInstances: input.desiredInstances,
+        desiredInstances,
         updatedById: actor.id
       },
       update: {
         enabled: input.enabled,
-        desiredInstances: input.desiredInstances,
+        desiredInstances,
         updatedById: actor.id
       }
     });
@@ -88,7 +110,7 @@ export async function updateWorker(input: {
         entityId: input.workerId,
         payload: {
           enabled: input.enabled,
-          desiredInstances: input.desiredInstances,
+          desiredInstances,
           runtimeMode,
           runtimeStatus,
           reason: input.reason

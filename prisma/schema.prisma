@@ -19,6 +19,17 @@ enum Role {
   USER
 }
 
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ApprovalDecisionType {
+  APPROVE
+  REJECT
+}
+
 model User {
   id             String      @id @default(uuid()) @db.Uuid
   externalSubject String     @unique @map("external_subject")
@@ -29,6 +40,10 @@ model User {
   flagsUpdated   FeatureFlag[]
   workersUpdated WorkerConfig[]
   gridsUpdated   GridConfig[]
+  gridTasksCreated GridTask[] @relation("GridTaskBuyer")
+  gridTasksAccepted GridTask[] @relation("GridTaskAcceptedBy")
+  approvalRequests ApprovalRequest[] @relation("ApprovalRequester")
+  approvalDecisions ApprovalDecision[] @relation("ApprovalReviewer")
 
   @@map("users")
 }
@@ -60,6 +75,45 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+model ApprovalRequest {
+  id                    String               @id @default(uuid()) @db.Uuid
+  scope                 String               @db.VarChar(60)
+  entityType            String               @map("entity_type") @db.VarChar(100)
+  entityId              String               @map("entity_id") @db.VarChar(100)
+  expectedState         Json                 @map("expected_state")
+  proposedState         Json                 @map("proposed_state")
+  requiredApproverRoles Role[]               @map("required_approver_roles")
+  reason                String               @db.VarChar(500)
+  status                ApprovalStatus       @default(PENDING)
+  version               Int                  @default(0)
+  requestedById         String               @map("requested_by_id") @db.Uuid
+  requestedByRole       Role                 @map("requested_by_role")
+  requestedBy           User                 @relation("ApprovalRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  decisions             ApprovalDecision[]
+  createdAt             DateTime             @default(now()) @map("created_at")
+  resolvedAt            DateTime?            @map("resolved_at")
+
+  @@index([status, createdAt])
+  @@index([entityType, entityId, status])
+  @@map("approval_requests")
+}
+
+model ApprovalDecision {
+  id          String               @id @default(uuid()) @db.Uuid
+  requestId   String               @map("request_id") @db.Uuid
+  request     ApprovalRequest      @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  reviewerId  String               @map("reviewer_id") @db.Uuid
+  reviewer    User                 @relation("ApprovalReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+  reviewerRole Role                @map("reviewer_role")
+  decision    ApprovalDecisionType
+  reason      String               @db.VarChar(500)
+  createdAt   DateTime             @default(now()) @map("created_at")
+
+  @@unique([requestId, reviewerId])
+  @@index([reviewerId, createdAt])
+  @@map("approval_decisions")
+}
+
 model WorkerConfig {
   id               String   @id @db.VarChar(60)
   enabled          Boolean  @default(false)
@@ -81,6 +135,41 @@ model GridConfig {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@map("grid_configs")
+}
+
+enum GridTaskStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  DELIVERED
+  ACCEPTED
+  CANCELLED
+}
+
+model GridTask {
+  id                 String         @id @default(uuid()) @db.Uuid
+  buyerId            String         @map("buyer_id") @db.Uuid
+  buyer              User           @relation("GridTaskBuyer", fields: [buyerId], references: [id], onDelete: Restrict)
+  gridId             String         @map("grid_id") @db.VarChar(60)
+  workerId           String?        @map("worker_id") @db.VarChar(60)
+  title              String         @db.VarChar(160)
+  description        String         @db.Text
+  acceptanceCriteria String         @map("acceptance_criteria") @db.Text
+  agreedAmount       Decimal        @map("agreed_amount") @db.Decimal(20, 8)
+  currency           String         @default("USD") @db.VarChar(3)
+  status             GridTaskStatus @default(OPEN)
+  deliveryEvidence   String?        @map("delivery_evidence") @db.Text
+  deliveredAt        DateTime?      @map("delivered_at")
+  acceptedById       String?        @map("accepted_by_id") @db.Uuid
+  acceptedBy         User?          @relation("GridTaskAcceptedBy", fields: [acceptedById], references: [id], onDelete: Restrict)
+  acceptedAt         DateTime?      @map("accepted_at")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  @@index([buyerId, createdAt])
+  @@index([gridId, status, createdAt])
+  @@index([workerId, status, createdAt])
+  @@map("grid_tasks")
 }
 
 model TreasuryTransfer {

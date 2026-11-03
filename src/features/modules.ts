@@ -5,6 +5,7 @@ import { AuthorizationError } from "../auth/authorization.js";
 import { gridCatalog } from "./grid-catalog.js";
 import { moduleNames } from "./module-catalog.js";
 import { workerCatalog } from "./worker-catalog.js";
+import { requestControlApproval } from "./approvals.js";
 
 export { moduleNames } from "./module-catalog.js";
 
@@ -144,6 +145,21 @@ export async function updateModule(input: {
   reason: string;
 }) {
   assertModuleUpdateAllowed(input.actorRole, input.moduleName, input.enabled);
+
+  const current = await prisma.featureFlag.findUnique({ where: { moduleName: input.moduleName } });
+  if (input.enabled && !current?.enabled) {
+    const approval = await requestControlApproval({
+      actorSubject: input.actorSubject,
+      actorRole: input.actorRole,
+      scope: "MODULE_ENABLE",
+      entityType: "FEATURE_FLAG",
+      entityId: input.moduleName,
+      expectedState: { enabled: current?.enabled ?? false },
+      proposedState: { enabled: true },
+      reason: input.reason
+    });
+    return { approvalRequired: true as const, approval };
+  }
 
   return prisma.$transaction(async (transaction) => {
     const actor = await transaction.user.upsert({
