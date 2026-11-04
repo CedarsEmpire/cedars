@@ -19,6 +19,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Validate fail-closed acceptance evidence ledger
+        run: npm run acceptance:check
       - name: Run automated tests
         run: npm test
       - name: Run authorization and runtime checks
