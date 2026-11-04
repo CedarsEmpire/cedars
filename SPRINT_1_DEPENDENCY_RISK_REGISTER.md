@@ -2,9 +2,9 @@
 
 **Assessment date:** 2026-11-04  
 **Repository baseline:** `main` at `4e3987d0c90b46c2612fa9c600da19c6f868dd3e`  
-**Audit commit:** `fix/ci-auth-tests` at `a753d208f9006790f04dc4983eef3d36d685e9c7`  
+**Audit run:** [GitHub Actions run #6](https://github.com/CedarsEmpire/cedars/actions/runs/41820322671) at `4c3e3d4e280a7a61df40fd6547b85a07ea8eb3a5`  
 **Environment:** Node.js 22.23.4, npm 10.9.9; clean `npm ci`  
-**Evidence:** `npm audit --json` and `npm audit --omit=dev --json` run in an isolated validation sandbox. Raw JSON was generated as `npm-audit-report.json` and `npm-audit-production.json` in that sandbox.
+**Evidence:** `npm audit --json` and `npm audit --omit=dev --json` ran in GitHub Actions run #6. Both raw JSON reports were uploaded in the `cedars-sprint1-dependency-audit` artifact (30-day retention; artifact ID `13316143969`). [Open run and download artifact](https://github.com/CedarsEmpire/cedars/actions/runs/41820322671). A downloaded ZIP copy is also attached with this response.
 
 ## Executive result
 
