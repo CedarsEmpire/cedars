@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { prisma } from "../src/db.js";
-import { gridCatalog } from "../src/features/grid-catalog.js";
-import { moduleNames } from "../src/features/module-catalog.js";
-import { getRuntimeMode } from "../src/features/runtime-mode.js";
-import { workerCatalog } from "../src/features/worker-catalog.js";
+import { prisma } from "../../db.js";
+import { gridCatalog } from "../../features/grid-catalog.js";
+import { moduleNames } from "../../features/module-catalog.js";
+import { getRuntimeMode } from "../../features/runtime-mode.js";
+import { workerCatalog } from "../../features/worker-catalog.js";
 
 export default async function readyHandler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== "GET") {
