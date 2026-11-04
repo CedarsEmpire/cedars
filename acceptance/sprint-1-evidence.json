@@ -12,11 +12,70 @@
       "build_id": "bld_k8gyxh8n9",
       "source_commit": "127ce7e5a04b0687e0551a8ae0058f9431a2c92c"
     },
-    "recovery_attempts": [],
+    "recovery_attempts": [
+      {
+        "date": "2026-11-04",
+        "method": "Vercel deployment file-tree API: list_deployment_files",
+        "target": "dpl_5nAG79uXog242izu5KPVPFLxzcZ6",
+        "result": "NOT_RECOVERED",
+        "observed_response": "HTTP/API 404: File tree not found.",
+        "limitation": "The Vercel tool documentation states that this file-tree endpoint is available for deployments created through the CLI or API with a files payload; this target is a Git deployment. The response does not establish whether historical build artifacts exist elsewhere or whether they have expired."
+      },
+      {
+        "date": "2026-11-04",
+        "method": "Vercel deployment file-content API: get_deployment_file_contents",
+        "target": "dpl_5nAG79uXog242izu5KPVPFLxzcZ6",
+        "paths_attempted": [
+          ".vercel/output/config.json",
+          ".vercel/output/functions/api.func/.vc-config.json",
+          "api/[...path].ts",
+          "vercel.json"
+        ],
+        "result": "NOT_RECOVERED",
+        "observed_response": "400 bad_request: Invalid API version, for GET /v8/deployments/{id}/files/{fileId}.",
+        "limitation": "The request failed at the API/version and file-identifier layer. No conclusion can be drawn about the presence, absence or contents of the requested files in the historical deployment."
+      },
+      {
+        "date": "2026-11-04",
+        "method": "Vercel project routing configuration APIs: list_project_routes and list_project_route_versions",
+        "target": "Preview project cedars-vkz3",
+        "result": "NO_PROJECT_LEVEL_RULES_RETURNED",
+        "observed_response": "routes: []; versions: [].",
+        "limitation": "These are project-level routing-rule settings, not the generated routing manifest for deployment dpl_5nAG79uXog242izu5KPVPFLxzcZ6. This result cannot establish the historical deployment's generated routes or function inventory."
+      },
+      {
+        "date": "2026-11-04",
+        "method": "Vercel deployment build-event/log inspection: list_deployment_events",
+        "target": "dpl_5nAG79uXog242izu5KPVPFLxzcZ6",
+        "result": "BUILD_LOGS_REVIEWED_ARTIFACTS_NOT_EXPOSED",
+        "observed_response": "Build events indicate that the build completed successfully in /vercel/output and the deployment completed.",
+        "limitation": "The returned build logs do not include the generated .vercel/output/config.json, generated function inventory, per-function .vc-config.json files or a complete generated route table. Successful build logs are not the historical artifacts themselves."
+      },
+      {
+        "date": "2026-11-04",
+        "method": "Isolated Vercel sandbox source-build reproduction",
+        "target": "Repository CedarsEmpire/cedars at commit 127ce7e5a04b0687e0551a8ae0058f9431a2c92c; sandbox cedars-pr6-artifact-inspect; session sbx_iRFsK27ihs5lLXKBgllHQVj9VW8r",
+        "result": "SOURCE_BUILD_SUCCEEDED_HISTORICAL_ARTIFACTS_NOT_RECOVERED",
+        "observed_response": "npm ci and npm run build completed successfully. npx vercel build --yes could not retrieve project configuration because the sandbox did not have valid Vercel CLI authentication. The nonpersistent sandbox subsequently stopped.",
+        "limitation": "This was an isolated source-build attempt, not retrieval of the original deployment output. It did not produce or authenticate the historical deployment's generated Vercel output. The stopped sandbox cannot be treated as a retained artifact archive."
+      },
+      {
+        "date": "2026-11-04",
+        "method": "Vercel documentation review for deployment output and build commands",
+        "target": "Build Output API, vercel pull, vercel build, and vercel inspect documentation",
+        "result": "RECOVERY_PATH_CLARIFIED_NO_HISTORICAL_ARTIFACTS_OBTAINED",
+        "observed_response": "Documentation describes generating local .vercel/output through a fresh build and retrieving deployment build logs.",
+        "limitation": "A fresh local build and build-log inspection do not retrieve the original historical deployment output or establish its retention status."
+      }
+    ],
     "evidence": [],
     "limitations": [
       "Historical generated deployment output has not been retrieved.",
-      "No authoritative retention or access determination has been recorded."
+      "The deployment file-tree endpoint did not expose a file tree for this Git deployment.",
+      "The attempted file-content requests failed at the API/version and file-identifier layer; they do not establish whether individual historical files exist.",
+      "Project-level routing settings and build logs do not substitute for the generated historical deployment routing manifest or function inventory.",
+      "The isolated source-build reproduction is not historical deployment evidence.",
+      "No authoritative retention or access determination from the Vercel project owner or Vercel Support has been recorded."
     ],
     "disposition_recorded_by": null,
     "disposition_recorded_at": null
