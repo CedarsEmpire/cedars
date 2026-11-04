@@ -35,15 +35,17 @@ The consolidated `api/[...path].ts` imports database-backed handlers at module s
 
 ## Authorization logic evidence
 
-The repository's `scripts/runtime-check.ts` has four stale imports after API consolidation:
+The branch now corrects the four stale imports after API consolidation:
 
 - `../api/modules/index.ts` → `../src/server/handlers/modules.ts`
 - `../api/operations/summary.ts` → `../src/server/handlers/operations-summary.ts`
 - `../api/ready.ts` → `../src/server/handlers/ready.ts`
 - `../api/grids/index.ts` → `../src/server/handlers/grids.ts`
 
-As committed, `npm run runtime:check` fails at a missing import. In an isolated sandbox only, those four imports were temporarily redirected; the script then passed 23 local assertions using an in-memory database and ephemeral RS256/JWKS keys. Assertions covered anonymous denial, invalid-role denial, Partner restrictions, Founder/Super Admin access, dual approval, financial activation blocking, disconnected grid runtime, audit visibility, and control-plane readiness. This is local logic evidence, not live identity-provider evidence. The expired-token case is not currently tested.
+The branch also adds an expired-token denial assertion. On branch commit `4f9999aa6a23764fd6c74b3eaf86b9d16fd5b663`, `npm run runtime:check` passed in an isolated Node 22 sandbox using an in-memory database and ephemeral RS256/JWKS keys. It reported 24 PASS assertions covering anonymous denial, expired-token denial, invalid-role denial, Partner restrictions, Founder/Super Admin access, dual approval, financial activation blocking, disconnected grid runtime, audit visibility, and control-plane readiness. No configured database was modified. This is local authorization/control-plane logic evidence, not live identity-provider evidence.
+
+The branch's CI workflow now includes `npm run runtime:check` and captures full and omit-dev npm audit JSON as 30-day GitHub Actions artifacts. However, the latest observed GitHub Actions run and PR API head still point to commit `aef85fee7db39a295366695f8706f540ae79ed34`, while the branch ref is at `4f9999aa6a23764fd6c74b3eaf86b9d16fd5b663`. The updated workflow has therefore not yet been proven by a GitHub Actions run.
 
 ## Release decision
 
-**Release gate OPEN.** CI, typecheck and build pass on draft PR #5, but production API runtime is blocked by missing `DATABASE_URL`; nested auth/operations routes return 404; the real identity journey is unverified; expired-token denial remains untested. Production alias remains on the baseline deployment above. No production environment, deployment, alias, or database changes were made during these probes.
+**Release gate OPEN.** Tests (51/51), typecheck and build pass in the isolated sandbox; 24 local runtime-check assertions pass on branch commit 4f9999a. Production API runtime is blocked by missing `DATABASE_URL`; nested auth/operations routes return 404; the real identity journey is unverified. The latest GitHub Actions run has not yet validated the updated runtime-check/audit-artifact workflow. Production alias remains on the baseline deployment above. No production environment, deployment, alias, or database changes were made during these probes.
