@@ -40,7 +40,7 @@ describe("OIDC browser configuration", () => {
       code_challenge_methods_supported: ["S256"]
     }), { status: 200, headers: { "Content-Type": "application/json" } })));
 
-    const { default: handler } = await import("../api/auth/config.js");
+    const { default: handler } = await import("../src/server/handlers/auth-config.js");
     const response = makeResponse();
     await handler({ method: "GET" } as never, response as never);
 
@@ -65,7 +65,7 @@ describe("OIDC browser configuration", () => {
       code_challenge_methods_supported: ["S256"]
     }), { status: 200, headers: { "Content-Type": "application/json" } })));
 
-    const { default: handler } = await import("../api/auth/config.js");
+    const { default: handler } = await import("../src/server/handlers/auth-config.js");
     const response = makeResponse();
     await handler({ method: "GET" } as never, response as never);
 
