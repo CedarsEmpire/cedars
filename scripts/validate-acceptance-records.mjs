@@ -37,7 +37,10 @@ if (historyStatus === "UNKNOWN" && reproductionStatus !== "NOT_STARTED") {
 }
 if (release.status === "PASS") {
   requireValue(historyStatus !== "UNKNOWN", "Release cannot PASS while historical evidence disposition is UNKNOWN");
-  requireValue(reproductionStatus === "REPRODUCTION_VALIDATED" || reproductionStatus === "NOT_STARTED", "Release cannot PASS with incomplete reproduction evidence");
+  requireValue(
+    reproductionStatus === "REPRODUCTION_VALIDATED",
+    "Release cannot PASS until controlled reproduction is REPRODUCTION_VALIDATED."
+  );
   requireValue(gateValues.every(value => value === "PASS" || value === "NOT_APPLICABLE"), "Release cannot PASS while any mandatory gate is not PASS");
   requireValue(release.authorization && release.authorization.recorded === true, "Release PASS requires recorded executive authorization");
 }
