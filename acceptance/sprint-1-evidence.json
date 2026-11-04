@@ -1,0 +1,64 @@
+{
+  "protocol": "CEDARS_PRODUCTION_ACCEPTANCE_VERIFY",
+  "protocol_version": "1.1",
+  "scope": "SPRINT_1",
+  "mode": "READ_ONLY_VERIFICATION",
+  "decision_policy": "FAIL_CLOSED",
+  "historical_deployment_evidence": {
+    "status": "UNKNOWN",
+    "target": {
+      "project": "cedars-vkz3",
+      "deployment_id": "dpl_5nAG79uXog242izu5KPVPFLxzcZ6",
+      "build_id": "bld_k8gyxh8n9",
+      "source_commit": "127ce7e5a04b0687e0551a8ae0058f9431a2c92c"
+    },
+    "recovery_attempts": [],
+    "evidence": [],
+    "limitations": [
+      "Historical generated deployment output has not been retrieved.",
+      "No authoritative retention or access determination has been recorded."
+    ],
+    "disposition_recorded_by": null,
+    "disposition_recorded_at": null
+  },
+  "controlled_reproduction_evidence": {
+    "status": "NOT_STARTED",
+    "source": {
+      "repository": "CedarsEmpire/cedars",
+      "commit": "127ce7e5a04b0687e0551a8ae0058f9431a2c92c"
+    },
+    "build_environment": null,
+    "evidence": [],
+    "runtime_tests": [],
+    "started_at": null,
+    "completed_at": null
+  },
+  "production_release_acceptance": {
+    "status": "BLOCKED",
+    "gates": {
+      "historical_evidence_disposition": "BLOCKED",
+      "reproduction_evidence": "BLOCKED",
+      "api_routing_and_runtime": "UNKNOWN",
+      "database_and_migrations": "UNKNOWN",
+      "auth0_identity_journey": "UNKNOWN",
+      "security": "UNKNOWN",
+      "observability_and_incident_response": "UNKNOWN",
+      "rollback_readiness": "UNKNOWN",
+      "executive_release_authorization": "BLOCKED"
+    },
+    "evidence": [],
+    "authorization": null
+  },
+  "evidence_classifications": [
+    "HISTORICAL_DEPLOYMENT_EVIDENCE",
+    "CONTROLLED_REPRODUCTION_EVIDENCE",
+    "CURRENT_RUNTIME_EVIDENCE",
+    "PRODUCTION_ACCEPTANCE_EVIDENCE"
+  ],
+  "activation_controls": {
+    "production": "FROZEN",
+    "financial_execution": "OFF",
+    "public_launch": "OFF",
+    "production_changes_authorized": false
+  }
+}
