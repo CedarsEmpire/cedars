@@ -10,6 +10,7 @@
     "prod:check": "tsx --env-file=.env scripts/prod-check.ts",
     "preview:check": "tsx scripts/preview-check.ts",
     "runtime:check": "tsx scripts/runtime-check.ts",
+    "acceptance:check": "node scripts/validate-acceptance-records.mjs",
     "build": "prisma generate && tsc --noEmit && node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
