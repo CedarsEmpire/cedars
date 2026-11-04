@@ -7,14 +7,14 @@ delete process.env.CEDARS_RUNTIME_MODE;
 process.env.VERCEL_ENV = "development";
 const [{ prisma }, { default: modulesHandler }, { default: updateModuleHandler }, { default: auditHandler }, { default: operationsSummaryHandler }, { default: readyHandler }, { default: workersHandler }, { default: updateWorkerHandler }, { default: gridsHandler }, { default: updateGridHandler }, { default: treasuryHandler }, { default: approvalsHandler }, { default: decideApprovalHandler }] = await Promise.all([
   import("../src/db.ts"),
-  import("../api/modules/index.ts"),
+  import("../src/server/handlers/modules.ts"),
   import("../api/admin/modules/[module].ts"),
   import("../api/admin/audit.ts"),
-  import("../api/operations/summary.ts"),
-  import("../api/ready.ts"),
+  import("../src/server/handlers/operations-summary.ts"),
+  import("../src/server/handlers/ready.ts"),
   import("../api/workers/index.ts"),
   import("../api/admin/workers/[worker].ts"),
-  import("../api/grids/index.ts"),
+  import("../src/server/handlers/grids.ts"),
   import("../api/admin/grids/[grid].ts"),
   import("../api/admin/treasury.ts"),
   import("../api/admin/approvals/index.ts"),
@@ -123,6 +123,23 @@ async function main() {
   } as never, unauthenticatedResponse as never);
   assert(unauthenticatedResponse.statusCode === 401, `Unauthenticated module listing returned ${unauthenticatedResponse.statusCode}, expected 401.`);
   console.log("PASS unauthenticated module listing denied");
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const expiredToken = await new SignJWT({ sub: "runtime-check-expired", [localRoleClaim]: Role.FOUNDER })
+    .setProtectedHeader({ alg: "RS256", kid: publicJwk.kid })
+    .setIssuedAt(nowSeconds - 120)
+    .setIssuer(process.env.AUTH_ISSUER)
+    .setAudience(process.env.AUTH_AUDIENCE)
+    .setExpirationTime(nowSeconds - 60)
+    .sign(privateKey);
+  const expiredTokenResponse = makeResponse();
+  await modulesHandler({
+    method: "GET",
+    headers: bearerHeaders(expiredToken)
+  } as never, expiredTokenResponse as never);
+  assert(expiredTokenResponse.statusCode === 401, `Expired access token returned ${expiredTokenResponse.statusCode}, expected 401.`);
+  console.log("PASS expired access token denied");
+
 
   const invalidRoleToken = await createToken("OWNER", "runtime-check-invalid-role");
   const invalidRoleResponse = makeResponse();
