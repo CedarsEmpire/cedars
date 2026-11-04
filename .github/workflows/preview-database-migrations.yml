@@ -1,0 +1,166 @@
+name: Preview Database Migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_confirmation:
+        description: "Confirm that this run targets the dedicated Supabase Preview database only"
+        required: true
+        type: choice
+        options:
+          - PREVIEW_ONLY
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cedars-preview-prisma-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    if: github.ref == 'refs/heads/main' && inputs.target_confirmation == 'PREVIEW_ONLY'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: cedars-preview-db
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Validate Preview-only database target
+        env:
+          DATABASE_URL: ${{ secrets.CEDARS_PREVIEW_DATABASE_URL }}
+        run: |
+          node --input-type=module <<'NODE'
+          const raw = process.env.DATABASE_URL;
+          if (!raw) throw new Error('Required environment secret CEDARS_PREVIEW_DATABASE_URL is missing.');
+          const url = new URL(raw);
+          const expectedHost = 'aws-0-us-east-1.pooler.supabase.com';
+          const expectedUser = 'prisma.ncpftcmkiqkgfqeguyuc';
+          if (url.hostname !== expectedHost) throw new Error('Refusing to run: database host is not the dedicated Preview pooler.');
+          if (decodeURIComponent(url.username) !== expectedUser) throw new Error('Refusing to run: database role is not the dedicated Preview Prisma role.');
+          if (url.port !== '5432' || url.pathname !== '/postgres' || url.searchParams.get('sslmode') !== 'require') {
+            throw new Error('Refusing to run: Preview database connection parameters do not match the approved target.');
+          }
+          console.log('Preview database target validated. Credentials are not displayed.');
+          NODE
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Apply tracked Prisma migrations
+        env:
+          DATABASE_URL: ${{ secrets.CEDARS_PREVIEW_DATABASE_URL }}
+        run: npx prisma migrate deploy
+
+      - name: Confirm Prisma migration status
+        env:
+          DATABASE_URL: ${{ secrets.CEDARS_PREVIEW_DATABASE_URL }}
+        run: npx prisma migrate status
+
+      - name: Verify migration history and required schema
+        env:
+          DATABASE_URL: ${{ secrets.CEDARS_PREVIEW_DATABASE_URL }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { writeFileSync } from 'node:fs';
+          import { PrismaClient } from '@prisma/client';
+
+          const expectedMigrations = [
+            '20261027000000_init',
+            '20261028000000_worker_control_plane',
+            '20261029000000_grid_control_plane',
+            '20261030000000_treasury_observation_ledger',
+            '20261102000000_grid_task_work_orders',
+            '20261103000000_control_approvals'
+          ];
+          const expectedTables = [
+            'users',
+            'feature_flags',
+            'audit_logs',
+            'approval_requests',
+            'approval_decisions',
+            'worker_configs',
+            'grid_configs',
+            'grid_tasks',
+            'treasury_transfers',
+            'treasury_cursors'
+          ];
+
+          const prisma = new PrismaClient();
+          try {
+            const rows = await prisma.$queryRaw`
+              SELECT migration_name, finished_at, rolled_back_at
+              FROM public."_prisma_migrations"
+              ORDER BY migration_name
+            `;
+            const applied = rows
+              .filter(row => row.finished_at !== null && row.rolled_back_at === null)
+              .map(row => row.migration_name);
+            const pendingOrFailed = rows.filter(row => row.finished_at === null && row.rolled_back_at === null);
+            const tables = await prisma.$queryRaw`
+              SELECT table_name
+              FROM information_schema.tables
+              WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+              ORDER BY table_name
+            `;
+            const tableNames = tables.map(row => row.table_name);
+            const missingMigrations = expectedMigrations.filter(name => !applied.includes(name));
+            const unexpectedApplied = applied.filter(name => !expectedMigrations.includes(name));
+            const missingTables = expectedTables.filter(name => !tableNames.includes(name));
+
+            const evidence = {
+              result: missingMigrations.length === 0 && unexpectedApplied.length === 0 &&
+                pendingOrFailed.length === 0 && missingTables.length === 0 &&
+                applied.length === expectedMigrations.length ? 'PASS' : 'FAIL',
+              expectedMigrationCount: expectedMigrations.length,
+              appliedMigrations: applied,
+              pendingOrFailedMigrations: pendingOrFailed.map(row => row.migration_name),
+              unexpectedAppliedMigrations: unexpectedApplied,
+              requiredTables: expectedTables,
+              missingRequiredTables: missingTables,
+              observedPublicTables: tableNames
+            };
+            writeFileSync('preview-db-verification.json', JSON.stringify(evidence, null, 2) + '\n');
+            console.log(JSON.stringify(evidence, null, 2));
+            if (evidence.result !== 'PASS') process.exitCode = 1;
+          } finally {
+            await prisma.$disconnect();
+          }
+          NODE
+
+      - name: Publish verification summary
+        if: always()
+        run: |
+          {
+            echo "## CEDARS OS Preview database migration"
+            echo ""
+            echo "- Target: dedicated Supabase Preview project only"
+            echo "- Source: main branch at workflow checkout"
+            echo "- Production access: not configured"
+            if [ -f preview-db-verification.json ]; then
+              echo "- Schema verification artifact: generated"
+            else
+              echo "- Schema verification artifact: not generated"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload database verification evidence
+        if: always() && hashFiles('preview-db-verification.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: cedars-preview-db-verification
+          path: preview-db-verification.json
+          if-no-files-found: error
+          retention-days: 30
