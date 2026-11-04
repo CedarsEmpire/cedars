@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import treasurySyncHandler from "../api/cron/treasury-sync.js";
 import { getTreasuryMonitorStatus, syncTreasuryObservations } from "../src/features/treasury.js";
@@ -35,6 +36,19 @@ describe("automated treasury sync endpoint", () => {
 
   afterEach(() => {
     delete process.env.CRON_SECRET;
+  });
+
+  it("uses a Hobby-compatible once-daily UTC cron schedule", () => {
+    const vercelConfig = JSON.parse(readFileSync("vercel.json", "utf8")) as {
+      crons?: Array<{ path: string; schedule: string }>;
+    };
+
+    expect(vercelConfig.crons).toEqual([
+      {
+        path: "/api/cron/treasury-sync",
+        schedule: "0 0 * * *"
+      }
+    ]);
   });
 
   it("rejects requests without the cron secret and does not sync", async () => {
