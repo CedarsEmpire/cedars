@@ -127,3 +127,25 @@ Do not treat this as production-ready if any of the following are true:
 ## 10. Final sign-off
 
 Production release should require explicit sign-off from the responsible operators, security reviewers, and finance/governance owners. The current prototype is a control-plane and governance starter, not a live operating system for money movement or autonomous execution.
+
+
+## 11. Artifact recoverability and acceptance evidence
+
+The Sprint 1 acceptance amendment is defined in [docs/PRODUCTION_ACCEPTANCE_PROTOCOL_AMENDMENT.md](./docs/PRODUCTION_ACCEPTANCE_PROTOCOL_AMENDMENT.md). Its independent evidence records are maintained in [acceptance/sprint-1-evidence.json](./acceptance/sprint-1-evidence.json).
+
+Run the structural and fail-closed policy check with:
+
+```sh
+npm run acceptance:check
+```
+
+This command validates the evidence ledger and prevents an invalid transition to release PASS. It does not independently verify external evidence, retrieve historical Vercel artifacts, run deployment probes, or grant release approval. CI validation of the ledger is a governance-format check, not production acceptance.
+
+Maintain three separate results:
+- Historical deployment evidence: what the original Vercel deployment can be proven to contain.
+- Controlled reproduction evidence: what a new build from the pinned source commit produces.
+- Production release acceptance: whether all mandatory release gates and executive authorization have independently passed.
+
+The checked-in Sprint 1 ledger intentionally starts with historical evidence `UNKNOWN`, reproduction `NOT_STARTED`, and release acceptance `BLOCKED`. Do not change these statuses without evidence and a recorded disposition. Reproduction must not begin until historical recovery has a documented disposition other than `UNKNOWN`.
+
+Production remains frozen; financial execution and public launch remain OFF. This amendment does not authorize production changes, provisioning, migrations, deployment, promotion, or activation.
