@@ -45,7 +45,7 @@ In Preview environment secrets only:
 - Keep the list as small as possible. Remove access by deleting the subject and setting the environment kill switch to `false` when pausing the pilot.
 - Keep the database feature flag `grid_tasks` OFF until an independent Founder/Super Admin approval is recorded.
 
-All three gates are required for task API access:
+For local smoke testing, the local development server issues two fixed identities: `local-dev-founder` and `local-dev-super-admin`. Add both exact subjects to the local `CEDARS_GRID_TASK_TESTER_SUBJECTS` value and set `CEDARS_GRID_TASKS_ENABLED=true` in the local `.env` file before running `npm run smoke`. Do not copy these local-only subjects into a hosted Preview or Production environment. The smoke suite exercises create, list, assign, start, independent-operator delivery, buyer acceptance, cancellation, and then disables the module flag.\n\nAll three gates are required for task API access:
 1. environment kill switch,
 2. exact subject allowlist,
 3. database `grid_tasks` feature flag.
