@@ -10,14 +10,14 @@
 
 ## 1. Purpose and architectural decision
 
-CEDARS Coin™ is the proposed name for a combined CEDARS digital-asset and ecosystem participation model. The combined model has four conceptually distinct functions:
+CEDARS Coin™ is the proposed name for a combined CEDARS digital-asset and ecosystem participation model. The combined model has four conceptually distinct functions, with **real monetary value as a first-class economic dimension** recorded in the same shared CEDARS Treasury:
 
 1. **Ecosystem identity** — a recognisable CEDARS ecosystem designation and account-level identity context.
 2. **Contribution recognition** — evidence-linked recognition of verified work, knowledge, innovation and positive outcomes.
 3. **Service utility** — governed access entitlements for eligible CEDARS services, subject to service-specific permissions and terms.
 4. **Bitcoin-compatible digital-asset research** — a future, separately approved technical option. No asset is issued or represented as Bitcoin-backed by this specification.
 
-These functions must not be collapsed into one spendable balance. A contribution record is not money. Recognition is not a financial claim. A service entitlement is not automatically transferable or redeemable. Association with the Bitcoin Grid does not mean Bitcoin backing, custody, settlement or protocol control.
+These functions must be governed separately, while CEDARS Coin must have real monetary value—not merely symbolic points or a recognition score. The monetary value is to be recorded as a distinct, evidence-backed valuation/attribution within the **same shared CEDARS Treasury**, not in a separate CEDARS Coin treasury. Treasury monetary values and CEDARS Coin valuation are restricted to authorized Command Centre roles. A contribution record alone does not automatically create money or a financial claim: any monetary attribution requires a separately approved methodology, source evidence, timestamp, audit trail and independent reconciliation. A service entitlement is not automatically transferable or redeemable. Association with the Bitcoin Grid does not mean Bitcoin backing, replacement, custody, settlement or protocol control.
 
 The name CEDARS Coin™ is a **working product name**, not a statement that a coin or token exists, has been issued, is legally classified, has monetary value, is redeemable, or is backed by reserves.
 
@@ -64,7 +64,7 @@ Identity verification must be proportionate, privacy-minimised and purpose-limit
 
 ### 3.2 Contribution recognition
 
-Purpose: preserve evidence of contributions and their attribution.
+Purpose: preserve evidence of contributions and their attribution, and support a separately governed monetary valuation where explicitly approved. Verified contribution can be considered in a monetary valuation methodology, but it does not automatically mint, issue or credit CEDARS Coin value.
 
 A recognition record should include:
 - Contribution ID and contributor reference.
@@ -78,7 +78,7 @@ A recognition record should include:
 
 The existing conceptual Contribution Value model (Impact × Reach × Trust × Sustainability) may be displayed as an evaluation framework, not as a monetary conversion formula.
 
-**Hard boundary:** no automatic conversion of contribution scores into money, token units, cash-equivalent balances, investment returns, yield, or redeemable claims. No automatic issuance or transfer.
+**Hard boundary:** no automatic conversion of contribution scores into money, token units, cash-equivalent balances, investment returns, yield, or redeemable claims. A monetary value may only be attributed through an approved valuation policy and recorded in the shared Treasury with independently verifiable evidence. No automatic issuance, credit, transfer or redemption.
 
 ### 3.3 Service utility
 
@@ -91,7 +91,7 @@ Preview entitlements may represent:
 - Expiry, suspension and revocation.
 - Service terms and acceptance evidence.
 
-An entitlement is an access-control record, not a payment, stored-value balance, deposit, withdrawal, transferable token or promise of future financial value. Any future fee collection must occur outside CEDARS under a separately approved commercial and legal design; CEDARS may record a non-sensitive external invoice or reconciliation reference only if approved.
+An entitlement is an access-control record, not by itself a payment, deposit, withdrawal or transferable token. Service utility is one component of CEDARS Coin and may coexist with a separately evidenced monetary valuation in the shared Treasury; it does not automatically create or redeem that value. Any future fee collection must occur outside CEDARS under a separately approved commercial and legal design; CEDARS may record a non-sensitive external invoice or reconciliation reference only if approved.
 
 ### 3.4 Digital-asset research
 
@@ -122,9 +122,12 @@ The Bitcoin Grid's mandatory status means mandatory architectural representation
 
 ## 5. Preview-only data model
 
+The Treasury is a single shared CEDARS Treasury. CEDARS Coin must not create a separate treasury. The Treasury view is restricted to authorized Command Centre roles; Customer Portal and ordinary Admin views must not expose monetary valuation details. The Preview panel may show the fields and access boundary, but must not fabricate sample amounts. Real amounts may appear only when supplied by an approved source and supported by reconciliation evidence. A displayed valuation is a record, not authority to move funds.
+
 Proposed logical records (not a migration or database instruction):
 
 - coin_program — program identifier, version, design status and governance owner.
+- coin_monetary_valuation — actual monetary value, denomination, valuation method, effective timestamp, source reference, approval and independent reconciliation status; stored/observed within the same shared CEDARS Treasury, not a separate coin treasury.
 - participant_identity_ref — internal participant reference, verification state and consent references; no wallet address or private key.
 - contribution_record — contribution description, attribution, evidence references and review state.
 - recognition_record — recognition decision and rationale; explicitly non-monetary and non-transferable.
@@ -177,6 +180,7 @@ No endpoints are implemented or authorised by this document. If future Preview-o
 - GET /api/coin/entitlements — access entitlements, never monetary balances.
 - GET /api/bitcoin/networks — curated external network research catalogue.
 - GET /api/coin/governance — approvals, scope and evidence references.
+- GET /api/admin/treasury — existing read-only Command Centre/Admin treasury observation surface; CEDARS Coin monetary valuation must be exposed only to the specifically authorized Command Centre role, with backend RBAC. The Preview interface alone is not an access-control mechanism.
 
 Any future write API for contribution corrections or entitlement administration must be separately designed with authentication, RBAC, approval separation, reason capture, audit logging, validation, rate limits and tests. There must be no transfer, deposit, withdrawal, mint, burn, swap, payment or broadcast endpoint.
 
@@ -216,6 +220,10 @@ The design is accepted for Preview documentation only when:
 - Bitcoin Grid remains present regardless of its operational OFF state.
 - The four CEDARS Coin functions are separately described and governed.
 - Contribution recognition cannot be mistaken for money or a balance.
+- CEDARS Coin has a real monetary valuation field in the same shared CEDARS Treasury; it is not merely symbolic recognition.
+- Treasury monetary values and CEDARS Coin valuation are restricted to authorized Command Centre roles.
+- No amount is displayed unless backed by an approved source and independent reconciliation evidence.
+- The shared Treasury view does not enable transfers, payments, deposits, withdrawals or fiat execution.
 - Service entitlements cannot be mistaken for stored value or payment.
 - External networks are described as independent systems.
 - No Bitcoin backing, reserve, peg, issuance, redemption or financial value is claimed.
@@ -231,6 +239,8 @@ The following are not decided:
 - Whether recognition remains permanently non-transferable.
 - Whether service utility is represented solely by internal access entitlements.
 - Whether there will be a supply cap, denomination, reserve, redemption or conversion mechanism.
+- The approved monetary valuation methodology, denomination, source of actual monetary value and reconciliation process.
+- Whether the Treasury will hold funds or only observe external treasury records; no custody or transaction execution is authorized by this design.
 - Which legal entities, jurisdictions and licences would be involved.
 
 These questions must remain open until research, independent advice and explicit governance approval are complete.
