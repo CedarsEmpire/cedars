@@ -49,12 +49,12 @@ jobs:
             throw new Error('Refusing to connect: CEDARS_PREVIEW_DATABASE_URL is not a valid database URL.');
           }
           const expectedHost = 'aws-0-us-east-1.pooler.supabase.com';
-          const expectedUser = 'prisma.ncpftcmkiqkgfqeguyuc';
+          const expectedUser = 'postgres.ncpftcmkiqkgfqeguyuc';
           if (url.hostname !== expectedHost) {
             throw new Error(`Refusing to connect: database hostname mismatch. Received host "${url.hostname || '(empty)'}"; expected "${expectedHost}". No credentials were displayed.`);
           }
           if (decodeURIComponent(url.username) !== expectedUser) {
-            throw new Error('Refusing to connect: database role is not the dedicated Preview Prisma role.');
+            throw new Error('Refusing to connect: database role is not the approved Preview database role.');
           }
           if (url.port !== '5432' || url.pathname !== '/postgres' || url.searchParams.get('sslmode') !== 'require') {
             throw new Error('Refusing to connect: Preview database connection parameters do not match the approved target.');
