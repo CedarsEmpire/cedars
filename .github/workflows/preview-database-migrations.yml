@@ -42,10 +42,17 @@ jobs:
           node --input-type=module <<'NODE'
           const raw = process.env.DATABASE_URL;
           if (!raw) throw new Error('Required environment secret CEDARS_PREVIEW_DATABASE_URL is missing.');
-          const url = new URL(raw);
+          let url;
+          try {
+            url = new URL(raw);
+          } catch {
+            throw new Error('Refusing to run: CEDARS_PREVIEW_DATABASE_URL is not a valid database URL.');
+          }
           const expectedHost = 'aws-0-us-east-1.pooler.supabase.com';
           const expectedUser = 'prisma.ncpftcmkiqkgfqeguyuc';
-          if (url.hostname !== expectedHost) throw new Error('Refusing to run: database host is not the dedicated Preview pooler.');
+          if (url.hostname !== expectedHost) {
+            throw new Error(`Refusing to run: database hostname mismatch. Received host "${url.hostname || '(empty)'}"; expected "${expectedHost}". No credentials were displayed.`);
+          }
           if (decodeURIComponent(url.username) !== expectedUser) throw new Error('Refusing to run: database role is not the dedicated Preview Prisma role.');
           if (url.port !== '5432' || url.pathname !== '/postgres' || url.searchParams.get('sslmode') !== 'require') {
             throw new Error('Refusing to run: Preview database connection parameters do not match the approved target.');
