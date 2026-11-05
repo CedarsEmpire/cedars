@@ -1,0 +1,89 @@
+name: Preview Database Connection Check
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_confirmation:
+        description: "Confirm that this check targets the dedicated Supabase Preview database only"
+        required: true
+        type: choice
+        options:
+          - PREVIEW_ONLY
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cedars-preview-db-connection-check
+  cancel-in-progress: false
+
+jobs:
+  connection-check:
+    if: github.ref == 'refs/heads/main' && inputs.target_confirmation == 'PREVIEW_ONLY'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: cedars-preview-db
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Validate Preview-only database target
+        env:
+          DATABASE_URL: ${{ secrets.CEDARS_PREVIEW_DATABASE_URL }}
+        run: |
+          node --input-type=module <<'NODE'
+          const raw = process.env.DATABASE_URL;
+          if (!raw) throw new Error('Required environment secret CEDARS_PREVIEW_DATABASE_URL is missing.');
+          let url;
+          try {
+            url = new URL(raw);
+          } catch {
+            throw new Error('Refusing to connect: CEDARS_PREVIEW_DATABASE_URL is not a valid database URL.');
+          }
+          const expectedHost = 'aws-0-us-east-1.pooler.supabase.com';
+          const expectedUser = 'prisma.ncpftcmkiqkgfqeguyuc';
+          if (url.hostname !== expectedHost) {
+            throw new Error(`Refusing to connect: database hostname mismatch. Received host "${url.hostname || '(empty)'}"; expected "${expectedHost}". No credentials were displayed.`);
+          }
+          if (decodeURIComponent(url.username) !== expectedUser) {
+            throw new Error('Refusing to connect: database role is not the dedicated Preview Prisma role.');
+          }
+          if (url.port !== '5432' || url.pathname !== '/postgres' || url.searchParams.get('sslmode') !== 'require') {
+            throw new Error('Refusing to connect: Preview database connection parameters do not match the approved target.');
+          }
+          console.log('Preview database target validated. Credentials are not displayed.');
+          NODE
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Test database connection without changing data
+        env:
+          DATABASE_URL: ${{ secrets.CEDARS_PREVIEW_DATABASE_URL }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { PrismaClient } from '@prisma/client';
+
+          const prisma = new PrismaClient();
+          try {
+            const result = await prisma.$queryRaw`SELECT 1 AS connection_ok`;
+            if (Number(result[0]?.connection_ok) !== 1) {
+              throw new Error('Database connection query returned an unexpected result.');
+            }
+            console.log('PASS: authenticated connection to the dedicated Preview database succeeded.');
+            console.log('PASS: only SELECT 1 was executed; no migrations or schema changes were performed.');
+          } finally {
+            await prisma.$disconnect();
+          }
+          NODE
