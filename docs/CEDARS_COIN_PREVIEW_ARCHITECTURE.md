@@ -1,7 +1,7 @@
 # CEDARS Coin™ — Preview-Only Architecture Specification
 
 **Status:** DESIGN ONLY / PREVIEW  
-**Architecture placement:** CLOUD → mandatory Bitcoin Grid → CEDARS Coin Grid  
+**Architecture placement:** CEDARS CLOUD → mandatory Bitcoin Grid and separately governed CEDARS Coin Grid  
 **Financial execution:** OFF  
 **Public launch:** OFF  
 **Production:** FROZEN  
@@ -23,22 +23,21 @@ The name CEDARS Coin™ is a **working product name**, not a statement that a co
 
 ## 2. Placement in the CEDARS architecture
 
-CEDARS Coin is a child capability of the mandatory Bitcoin Grid in the CLOUD economic layer. Bitcoin Grid is a required architectural component and must not be treated as optional or omitted from catalogues, governance views or architecture maps.
+CEDARS Coin Grid is a separately governed capability within CEDARS CLOUD. Its Bitcoin-compatible technology research may reference the mandatory Bitcoin Grid, but that relationship does not imply Bitcoin backing, custody, settlement or transaction execution. Bitcoin Grid is a required architectural component and must not be treated as optional or omitted from catalogues, governance views or architecture maps.
 
 The Bitcoin Grid is the parent CEDARS governance and research domain for crypto-related capabilities. It does not control Bitcoin or other external protocols. External blockchain networks remain independent systems with their own consensus, validators, rules, risks and governance.
 
 ### Proposed hierarchy
 
 - **CEDARS OS™**
-  - **CLOUD**
-    - **Bitcoin Grid** — mandatory architectural parent; operational execution disabled.
-      - Bitcoin Trust & Evidence Grid
-      - Monetary Network Intelligence Grid
-      - Crypto Network Intelligence Grid
-      - Crypto Interoperability Research Grid
-      - Digital Asset Governance Grid
-      - Blockchain Security & Risk Grid
-      - **CEDARS Coin Grid**
+  - **CEDARS CLOUD**
+    - **Bitcoin Grid** — mandatory architectural and research parent; operational execution disabled.
+      - Bitcoin Trust Grid
+      - Monetary Network Grid
+      - Scarcity Model Grid
+      - Security History Grid
+      - Adoption Intelligence Grid
+    - **CEDARS Coin Grid** — separately governed CEDARS ecosystem capability; execution disabled.
         - Ecosystem Identity capability
         - Contribution Recognition capability
         - Service Utility capability
@@ -217,7 +216,7 @@ This specification does not conclude that CEDARS Coin is lawful to issue, that a
 ## 11. Acceptance criteria for this Preview architecture
 
 The design is accepted for Preview documentation only when:
-- CEDARS Coin is shown as a proposed capability under the mandatory Bitcoin Grid in CLOUD.
+- CEDARS Coin Grid is shown as a separately governed capability within CEDARS CLOUD alongside the mandatory Bitcoin Grid; no Bitcoin backing or custody is implied.
 - Bitcoin Grid remains present regardless of its operational OFF state.
 - The four CEDARS Coin functions are separately described and governed.
 - Contribution recognition cannot be mistaken for money or a balance.
@@ -249,4 +248,4 @@ These questions must remain open until research, independent advice and explicit
 
 ---
 
-**Current disposition:** CEDARS Coin™ combined model documented as a Preview-only design proposal. No token exists by virtue of this document. Bitcoin Grid is architecturally mandatory; Bitcoin and financial execution remain disabled.
+**Current disposition:** CEDARS Coin™ combined model documented as a Preview-only design proposal. No token exists by virtue of this document. The four canonical CEDARS economic layers are CEDARS CLOUD, CEDARS UNDERGROUND, CEDARS EARTH and CEDARS HUMAN ACTIVITIES. Bitcoin Grid and its five research Grids are mandatory catalogue architecture; all network execution remains disabled. Financial execution remains OFF.
