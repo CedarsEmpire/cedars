@@ -57,33 +57,10 @@ overview:{title:"Platform overview",sub:"A single operational view of the CEDARS
  <div class="card"><div class="statlabel">AI worker catalogue</div><div class="statvalue">8</div><div class="statnote">Prototype entries only · runtime not connected</div></div>
 </div>
 <div class="grid layout2">
- <section class="card"><div class="cardhead"><h2>Platform service health</h2><span class="pill amber">PARTIAL</span></div>
-  <div class="healthrow"><span><i class="dot"></i>API health endpoint</span><span class="pill green">VERIFIED · HTTP 200</span></div>
-  <div class="healthrow"><span><i class="dot amber"></i>Preview database</span><span class="pill amber">CONNECTION PENDING</span></div>
-  <div class="healthrow"><span><i class="dot amber"></i>Authentication</span><span class="pill amber">NOT ACCEPTED</span></div>
-  <div class="healthrow"><span><i class="dot amber"></i>Grid service integrations</span><span class="pill amber">NOT CONNECTED</span></div>
-  <div class="healthrow"><span><i class="dot amber"></i>Autonomous worker runtime</span><span class="pill amber">NOT IMPLEMENTED</span></div>
- </section>
- <section class="card"><div class="cardhead"><h2>Governance status</h2><span class="pill green">CONTROLLED</span></div>
-  <div class="metricline"><span>Production environment</span><b class="pill red">OFF</b></div><div class="metricline"><span>Public launch</span><b class="pill red">OFF</b></div><div class="metricline"><span>Financial execution</span><b class="pill red">OFF</b></div><div class="metricline"><span>Fiat transactions</span><b class="pill red">PROHIBITED</b></div><div class="metricline"><span>Preview governance</span><b class="pill green">ACTIVE</b></div>
- </section>
-</div>
-<div class="grid layout2" style="margin-top:15px">
- <section class="card"><div class="cardhead"><h2>Milestone acceptance</h2><span class="muted small">Evidence-led progress</span></div>
-  ${["M1 · Preview Foundation","M2 · Working Backend","M3 · Working Dashboard","M4 · Module Integration","M5 · Platform Verification"].map((x,i)=>`<div class="metricline"><span>${x}</span><span class="pill ${i===0?"amber":"blue"}">${i===0?"IN PROGRESS":"NOT STARTED"}</span></div>`).join("")}
- </section>
- <section class="card"><div class="cardhead"><h2>Recent platform events</h2><span class="muted small">Illustrative feed</span></div><div class="activity">
-  <div class="activityitem"><div class="activityicon">✓</div><div><b>Preview health check passed</b><p>GET /api/health · HTTP 200 · previously verified</p></div></div>
-  <div class="activityitem"><div class="activityicon">!</div><div><b>Database connection validation blocked</b><p>Username mismatch · no database query executed</p></div></div>
-  <div class="activityitem"><div class="activityicon">◇</div><div><b>Governance controls retained</b><p>Production, launch and financial execution remain OFF</p></div></div>
- </div></section>
-</div>`},
-vision:{title:"CEDARS Empire · Original vision",sub:"The complete destination: a 24/7 AI Grid Economy evolving into the CEDARS HUMANITY GRID™.",html:`<div class="notice"><strong>Original operating ambition</strong>DEPLOY → CONNECT → VERIFY → EARN → REINVEST. AI coordinates useful work; real buyers and providers create commercial value through verified delivery. The 250,000 million AI IQ ambition is strategic—not a measured or deployed AI count.</div>
-<div class="card"><div class="cardhead"><h2>The four connected economic layers</h2><span class="pill blue">FOUNDATION</span></div><div class="grid layout2">
-<div class="module"><h3>☁ CLOUD</h3><p>Compute and AI APIs · data processing · SaaS and business software · cybersecurity and automation</p></div>
-<div class="module"><h3>🌍 EARTH SURFACE</h3><p>Solar and energy services · agriculture and water · buildings and shelter · cleaning, delivery and mobility</p></div>
-<div class="module"><h3>⛏ UNDERGROUND</h3><p>Mining and minerals · geospatial and geology data · utilities and infrastructure · equipment and maintenance</p></div>
-<div class="module"><h3>♧ HUMAN ACTIVITIES</h3><p>Trade and procurement · professional services · education and training · care, tourism and logistics</p></div>
+<div class="module"><h3>CLOUD</h3><p>AI, identity, governance, compute, data, cybersecurity, records, trust and external network services</p></div>
+<div class="module"><h3>UNDERGROUND</h3><p>Mining and minerals · geological intelligence · underground infrastructure · industrial operations</p></div>
+<div class="module"><h3>EARTH SURFACE</h3><p>Energy · climate · agriculture · food · water · land · buildings · environment · mobility and logistics</p></div>
+<div class="module"><h3>HUMAN ACTIVITIES</h3><p>Business · professional services · education · healthcare · communities · grants · contribution · innovation and human development</p></div>
 </div></div>
 <div class="card" style="margin-top:15px"><div class="cardhead"><h2>Seven revenue-capable engine categories</h2><span class="pill blue">COMMERCIAL SCOPE</span></div><div class="grid layout2">
 <div class="module"><h3>AI & CLOUD</h3><p>Document processing, data labeling, translation, workflow automation, API and SaaS access</p><span class="tag">Per task · seat · API</span></div>
@@ -101,6 +78,13 @@ vision:{title:"CEDARS Empire · Original vision",sub:"The complete destination: 
 <div class="healthrow"><b>07 · AI Twins™</b><span class="tag">HUMAN-AI</span></div><div class="healthrow"><b>08 · Innovation Dome™</b><span class="tag">INVENTION</span></div>
 <div class="healthrow"><b>09 · Synthetic Reality™</b><span class="tag">EXPERIENCE</span></div><div class="healthrow"><b>10 · Human Progress Index</b><span class="tag">IMPACT</span></div>
 </div><div class="notice blue" style="margin-top:12px"><strong>Cross-cutting capability · Collective Intelligence</strong>Connect people, AI agents, organizations, sensors and knowledge systems so human judgment, machine pattern-finding, local knowledge and shared memory work together.</div></div>
+<div class="card" style="margin-top:15px"><div class="cardhead"><h2>Bitcoin Trust & Monetary Network service layer</h2><span class="pill blue">OPTIONAL · NOT CONNECTED</span></div><p class="muted small">Bitcoin is an external service layer beneath CEDARS governance. CEDARS remains the operating system. This is not a CEDARS chain or a change to Bitcoin itself.</p><div class="grid layout2">
+<div class="module"><h3>Bitcoin Trust Grid</h3><p>Future option for cryptographic proof and timestamp anchoring. Only hashes and minimal proof metadata would leave CEDARS; source records remain governed inside CEDARS.</p></div>
+<div class="module"><h3>Monetary Network Grid</h3><p>Read-only study of Bitcoin's network design, protocol, issuance and public network signals. No wallet, payment, transfer, settlement or transaction broadcasting.</p></div>
+<div class="module"><h3>Scarcity Model Grid</h3><p>Fixed-supply design, issuance schedule, halving history and scarcity indicators. Educational and analytical model; not a price or investment promise.</p></div>
+<div class="module"><h3>Security History Grid</h3><p>Proof-of-work, mining difficulty, hashrate context, security design and documented historical incidents.</p></div>
+<div class="module"><h3>Adoption Intelligence Grid</h3><p>Historical and current adoption indicators, nodes, ecosystem participation and institutional or merchant adoption research.</p></div>
+</div><div class="notice red" style="margin-top:12px"><strong>Strict operating boundary</strong>Design and research only in this Preview. No Bitcoin keys or wallets, no BTC transfers, no transaction broadcasting, no fiat transactions, and no live anchoring until separately approved and independently verified. Financial execution remains OFF.</div></div>
 <div class="card" style="margin-top:15px"><div class="cardhead"><h2>Four connected human-progress networks</h2></div><div class="grid layout2">
 <div class="module"><h3>Internet of Services</h3><p>Discover · match · deliver useful services across cloud, Earth, underground and human business.</p></div>
 <div class="module"><h3>Internet of Contribution</h3><p>Verify · attribute · recognize meaningful work and measurable contribution.</p></div>
@@ -214,7 +198,7 @@ function renderLayeredGridRegistry(){
   const layerOn=!!layerSwitches[layer.name];
   const cards=items.map(g=>{
    const desired=!!gridSwitches[g[0]],effective=layerOn&&desired;
-   return '<article class="module"><div class="moduletop"><div><h3>'+g[0]+'</h3><p>'+g[1]+'</p></div><span class="pill '+(effective?'green':'red')+'">'+(effective?'EFFECTIVE ON':'EFFECTIVE OFF')+'</span></div><div class="metricline"><span class="muted small">Catalogue status</span>'+statusPill(g[2])+'</div><div class="small muted" style="margin:0 0 6px">Evidence / dependency: '+g[3]+'</div><div class="small muted" style="margin:0 0 10px">Classification: '+g[4]+'</div><div class="metricline"><span class="small">Grid switch</span><button class="toggle '+(desired?'on':'')+'" role="switch" aria-checked="'+desired+'" aria-label="Toggle '+g[0]+'" data-grid-toggle="'+g[0]+'" '+(!layerOn?'disabled':'')+'></button></div><div class="small muted">'+(!layerOn?'Layer is OFF; Grid is isolated.':desired?'Grid desired state is ON; runtime still requires verification.':'Grid remains OFF until individually enabled.')+'</div></article>';
+   return '<article class="module"><div class="moduletop"><div><h3>'+g[0]+'</h3><p>'+g[1]+'</p></div><span class="pill '+(effective?'green':'red')+'">'+(effective?'EFFECTIVE ON':'EFFECTIVE OFF')+'</span></div><div class="metricline"><span class="muted small">Catalogue status</span>'+statusPill(g[2])+'</div><div class="small muted" style="margin:0 0 6px">Evidence / dependency: '+g[3]+'</div><div class="small muted" style="margin:0 0 10px">Classification: '+g[4]+'</div><div class="metricline"><span class="small">Grid switch</span><button class="toggle '+(desired?'on':'')+'" role="switch" aria-checked="'+desired+'" aria-label="Toggle '+g[0]+'" data-grid-toggle="'+g[0]+'"></button></div><div class="small muted">'+(!layerOn?'Layer is OFF; Grid is isolated.':desired?'Grid desired state is ON; runtime still requires verification.':'Grid remains OFF until individually enabled.')+'</div></article>';
   }).join("");
   return '<section class="card" style="margin-bottom:15px"><div class="cardhead"><div><span class="eyebrow">'+layer.kind+'</span><h2 style="margin:5px 0">'+layer.name+'</h2><p class="muted small" style="margin:0">'+layer.desc+'</p></div><div style="text-align:right"><span class="pill '+(layerOn?'green':'red')+'">'+(layerOn?'LAYER ON':'LAYER OFF')+'</span><div style="margin-top:8px"><button class="toggle '+(layerOn?'on':'')+'" role="switch" aria-checked="'+layerOn+'" aria-label="Toggle layer '+layer.name+'" data-layer-toggle="'+layer.name+'"></button></div></div></div><div class="grid modulegrid">'+(cards||'<div class="empty">No Grid currently assigned to this layer.</div>')+'</div></section>';
  }).join("");
