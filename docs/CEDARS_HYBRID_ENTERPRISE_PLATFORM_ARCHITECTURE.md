@@ -4,16 +4,16 @@
 **Economic layers:** 4  
 **Revenue-capable engine categories:** 7  
 **CEDARS HUMANITY GRID™ strategic layers:** 10  
-**Prototype Grid catalogue:** 60 entries; catalogue presence is not operational readiness  
+**Prototype Grid catalogue:** 53 actual Grid entries; the seven commercial engine categories are classified separately  
 **AI worker catalogue:** 8 entries; autonomous worker runtime is NOT CONNECTED
 
 ## 1. Four economic layers — canonical hierarchy
 
 Every Grid belongs to one parent economic layer. Each layer and each Grid has a separately governed desired state. A Grid is effectively enabled only when both its parent layer and its own desired state are ON. Turning a parent layer OFF isolates its child Grids without erasing their individual desired states.
 
-### CEDARS CLOUD — 20 catalogue Grids
+### CEDARS CLOUD — 19 catalogue Grids
 
-AI and cloud services, compute, data processing, identity, cybersecurity, automation, wallets/ledger design, governance, records, trust, Bitcoin research and CEDARS Coin architecture.
+Compute & AI Grid; Data Processing Grid; SaaS & Business Software Grid; Cybersecurity & Automation Grid; Wallet Grid; Ledger Grid; Money Grid; AI IQ Grid; Collective Memory; AI Discovery Engine; Trust & Verification; Civilization Ledger; Bitcoin Trust Grid; Monetary Network Grid; Scarcity Model Grid; Security History Grid; Adoption Intelligence Grid; Bitcoin Grid; CEDARS Coin Grid.
 
 Mandatory Bitcoin research hierarchy:
 - Bitcoin Grid
@@ -25,19 +25,19 @@ Mandatory Bitcoin research hierarchy:
 
 CEDARS Coin Grid is separately governed within CEDARS CLOUD. It is not Bitcoin-backed, is not a replacement for Bitcoin, and does not imply wallet custody or transaction execution.
 
-### CEDARS UNDERGROUND — 5 catalogue Grids
+### CEDARS UNDERGROUND — 4 catalogue Grids
 
-Mining & Minerals Grid; Geospatial & Geology Grid; Utilities & Infrastructure Grid; Equipment & Maintenance Grid; Underground & Industry engine scope.
+Mining & Minerals Grid; Geospatial & Geology Grid; Utilities & Infrastructure Grid; Equipment & Maintenance Grid.
 
-### CEDARS EARTH — 15 catalogue Grids
+### CEDARS EARTH — 11 catalogue Grids
 
-Solar Grid; Climate Grid; Environmental Intelligence Grid; Energy Grid; Agriculture Grid; Food Grid; Water Grid; Land Grid; Buildings & Services Grid; Cleaning & Maintenance Grid; Mobility & Logistics Grid; Energy engine scope; Food, Water & Land engine scope; Mobility & Logistics engine scope; Buildings & Services engine scope.
+Solar Grid; Climate Grid; Environmental Intelligence Grid; Energy Grid; Agriculture Grid; Food Grid; Water Grid; Land Grid; Buildings & Services Grid; Cleaning & Maintenance Grid; Mobility & Logistics Grid.
 
-### CEDARS HUMAN ACTIVITIES — 20 catalogue Grids
+### CEDARS HUMAN ACTIVITIES — 19 catalogue Grids
 
-Trade & Procurement Grid; Professional Services Grid; Education & Training Grid; Care Services Grid; Tourism & Hospitality Grid; Human Professional Services engine scope; Sales AI; Support AI; Healthcare AI; Education AI; Contribution Grid; Innovation Grid; Innovation Network; AI Twins™; Innovation Dome™; Simulation Grid; Synthetic Reality™; Human Progress Index; Proof of Contribution; Collective Intelligence.
+Trade & Procurement Grid; Professional Services Grid; Education & Training Grid; Care Services Grid; Tourism & Hospitality Grid; Sales AI; Support AI; Healthcare AI; Education AI; Contribution Grid; Innovation Grid; Innovation Network; AI Twins™; Innovation Dome™; Simulation Grid; Synthetic Reality™; Human Progress Index; Proof of Contribution; Collective Intelligence.
 
-The four catalogue counts total 60. They describe the current prototype registry only, not 60 live services.
+The four layer counts total 53 actual Grids. The seven revenue-capable engine categories below are a separate commercial classification and are not counted as Grids. Catalogue presence does not mean operational readiness.
 
 ## 2. Seven revenue-capable engine categories
 
