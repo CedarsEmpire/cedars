@@ -122,7 +122,7 @@ The Bitcoin Grid's mandatory status means mandatory architectural representation
 
 ## 5. Preview-only data model
 
-The Treasury is a single shared CEDARS Treasury. CEDARS Coin must not create a separate treasury. The Treasury view is restricted to authorized Command Centre roles; Customer Portal and ordinary Admin views must not expose monetary valuation details. The Preview panel may show the fields and access boundary, but must not fabricate sample amounts. Real amounts may appear only when supplied by an approved source and supported by reconciliation evidence. A displayed valuation is a record, not authority to move funds.
+The target architecture is one shared CEDARS Treasury; CEDARS Coin must not create a separate treasury. Treasury monetary values and CEDARS Coin valuation are restricted to authorized Command Centre roles; Customer Portal and ordinary Admin views must not expose them. **Current implementation gap:** the repository's Treasury capability is read-only external-chain observation (TRON/BNB monitor status, cursors and observed transfers). It does not currently provide CEDARS Coin valuation records, accounting journals, member balances or settlement. It is not an authoritative Coin valuation source. A separately approved, read-only valuation record within the same Treasury domain is required. The Preview panel may show fields and access boundaries, but must not fabricate sample amounts. Real amounts may appear only when supplied by an approved source and supported by independent reconciliation evidence. A displayed valuation is a record, not authority to move funds.
 
 Proposed logical records (not a migration or database instruction):
 
@@ -180,7 +180,8 @@ No endpoints are implemented or authorised by this document. If future Preview-o
 - GET /api/coin/entitlements — access entitlements, never monetary balances.
 - GET /api/bitcoin/networks — curated external network research catalogue.
 - GET /api/coin/governance — approvals, scope and evidence references.
-- GET /api/admin/treasury — existing read-only Command Centre/Admin treasury observation surface; CEDARS Coin monetary valuation must be exposed only to the specifically authorized Command Centre role, with backend RBAC. The Preview interface alone is not an access-control mechanism.
+- GET /api/admin/treasury — existing read-only external-chain observation surface. It reports configured chain monitor status, sync cursors and observed transfers; it is not a Coin valuation source, customer balance, accounting journal or settlement record.
+- GET /api/admin/treasury/coin-valuation — proposed read-only endpoint, NOT IMPLEMENTED. It may expose approved CEDARS Coin monetary valuation records from a verified source to specifically authorized Command Centre roles only, with backend RBAC and audit logging. The Preview interface alone is not an access-control mechanism.
 
 Any future write API for contribution corrections or entitlement administration must be separately designed with authentication, RBAC, approval separation, reason capture, audit logging, validation, rate limits and tests. There must be no transfer, deposit, withdrawal, mint, burn, swap, payment or broadcast endpoint.
 
@@ -241,6 +242,7 @@ The following are not decided:
 - Whether there will be a supply cap, denomination, reserve, redemption or conversion mechanism.
 - The approved monetary valuation methodology, denomination, source of actual monetary value and reconciliation process.
 - Whether the Treasury will hold funds or only observe external treasury records; no custody or transaction execution is authorized by this design.
+- The existing read-only chain observer must not be misrepresented as the CEDARS Coin valuation register; the latter requires a separately approved data source and read-only implementation.
 - Which legal entities, jurisdictions and licences would be involved.
 
 These questions must remain open until research, independent advice and explicit governance approval are complete.
