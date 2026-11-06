@@ -283,15 +283,23 @@ function initializeRegistrationPhone(){
  if(!phone||phone.dataset.initialized==="true")return;
  if(typeof window.intlTelInput!=="function"){
   const help=document.getElementById("phoneHelp");
-  if(help)help.textContent="Global country-code selector is loading. If it does not appear, refresh this Preview page.";
+  if(help)help.textContent="Global country selector is loading. If it does not appear, refresh this Preview page.";
   return;
+ }
+ const residence=document.getElementById("registrationCountry");
+ const countryData=window.intlTelInput.getCountryData();
+ if(residence&&countryData.length){
+  const options=countryData.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  residence.replaceChildren(new Option("Select your country or region",""));
+  for(const item of options)residence.add(new Option(item.name,item.iso2.toUpperCase()));
+  residence.value="UG";
  }
  const iti=window.intlTelInput(phone,{initialCountry:"ug",separateDialCode:true,nationalMode:true,allowDropdown:true,countrySearch:true,autoPlaceholder:"polite",loadUtils:()=>import("https://cdn.jsdelivr.net/npm/intl-tel-input@25.3.1/build/js/utils.js")});
  phone.dataset.initialized="true";
- const country=document.getElementById("registrationPhoneCountry");
+ const phoneCountry=document.getElementById("registrationPhoneCountry");
  const calling=document.getElementById("registrationCallingCode");
  const e164=document.getElementById("registrationPhoneE164");
- const sync=()=>{const selected=iti.getSelectedCountryData()||{};country.value=selected.iso2||"";calling.value=selected.dialCode||"";e164.value=phone.value.trim()?iti.getNumber():"";};
+ const sync=()=>{const selected=iti.getSelectedCountryData()||{};phoneCountry.value=selected.iso2||"";calling.value=selected.dialCode||"";e164.value=phone.value.trim()?iti.getNumber():"";};
  phone.addEventListener("countrychange",sync);
  phone.addEventListener("input",sync);
  phone.addEventListener("blur",sync);
