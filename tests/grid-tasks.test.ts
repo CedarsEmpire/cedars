@@ -52,7 +52,7 @@ describe("Grid Task work order lifecycle", () => {
   it("validates positive decimal prices and rejects extra fields", async () => {
     const { createGridTaskSchema } = await import("../src/features/grid-tasks.js");
     const valid = {
-      gridId: "research",
+      gridId: "ai-iq",
       title: "Translate a supplier guide",
       description: "Translate a short product guide for a prospective buyer.",
       acceptanceCriteria: "Deliver an editable translation with all sections preserved.",
@@ -73,7 +73,7 @@ describe("Grid Task work order lifecycle", () => {
       actorSubject: "pilot-buyer",
       actorRole: Role.USER,
       task: {
-        gridId: "research",
+        gridId: "ai-iq",
         title: "Translate a supplier guide",
         description: "Translate a short product guide for a prospective buyer.",
         acceptanceCriteria: "Deliver an editable translation with all sections preserved.",
