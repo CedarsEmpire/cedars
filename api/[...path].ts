@@ -9,7 +9,8 @@ const handlerLoaders: Record<NonNullable<ReturnType<typeof resolveConsolidatedAp
   "/api/auth/config": () => import("../src/server/handlers/auth-config.js"),
   "/api/grids": () => import("../src/server/handlers/grids.js"),
   "/api/modules": () => import("../src/server/handlers/modules.js"),
-  "/api/operations/summary": () => import("../src/server/handlers/operations-summary.js")
+  "/api/operations/summary": () => import("../src/server/handlers/operations-summary.js"),
+  "/api/customer/overview": () => import("../src/server/handlers/customer-overview.js")
 };
 
 export default async function consolidatedApiHandler(request: VercelRequest, response: VercelResponse) {

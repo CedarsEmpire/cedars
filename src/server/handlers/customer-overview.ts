@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { AuthorizationError, authenticateRequest } from "../../src/auth/authorization.js";
-import { prisma } from "../../src/db.js";
+import { AuthorizationError, authenticateRequest } from "../../auth/authorization.js";
+import { prisma } from "../../db.js";
 
 const taskStatuses = ["OPEN", "ASSIGNED", "IN_PROGRESS", "DELIVERED", "ACCEPTED", "CANCELLED"] as const;
 
