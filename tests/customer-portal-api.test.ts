@@ -22,7 +22,7 @@ vi.mock("../src/db.js", () => ({
   }
 }));
 
-import customerOverviewHandler from "../api/customer/overview.js";
+import customerOverviewHandler from "../src/server/handlers/customer-overview.js";
 
 function responseDouble() {
   return {
