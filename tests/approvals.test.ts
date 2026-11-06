@@ -102,12 +102,12 @@ describe("control approval workflow", () => {
     const gridProposal = await updateGrid({
       actorSubject: "grid-requester",
       actorRole: Role.FOUNDER,
-      gridId: "internet",
+      gridId: "solar",
       desiredState: "WORKING",
       reason: "Enable approved grid state"
     });
     expect(gridProposal).toMatchObject({ approvalRequired: true });
-    expect((await prisma.gridConfig.findUnique({ where: { id: "internet" } }))?.desiredState).toBe("STANDBY");
+    expect((await prisma.gridConfig.findUnique({ where: { id: "solar" } }))?.desiredState).toBe("STANDBY");
     await decideApproval({
       actorSubject: "grid-reviewer",
       actorRole: Role.SUPER_ADMIN,
@@ -115,7 +115,7 @@ describe("control approval workflow", () => {
       decision: "APPROVE",
       reason: "Reviewed grid scope"
     });
-    expect((await prisma.gridConfig.findUnique({ where: { id: "internet" } }))?.desiredState).toBe("WORKING");
+    expect((await prisma.gridConfig.findUnique({ where: { id: "solar" } }))?.desiredState).toBe("WORKING");
 
     const disabledWorker = await updateWorker({
       actorSubject: "worker-requester",
@@ -131,12 +131,12 @@ describe("control approval workflow", () => {
     const maintenanceGrid = await updateGrid({
       actorSubject: "grid-requester",
       actorRole: Role.FOUNDER,
-      gridId: "internet",
+      gridId: "solar",
       desiredState: "MAINTENANCE",
       reason: "Pause grid for review"
     });
     expect(maintenanceGrid).not.toHaveProperty("approvalRequired");
-    expect((await prisma.gridConfig.findUnique({ where: { id: "internet" } }))?.desiredState).toBe("MAINTENANCE");
+    expect((await prisma.gridConfig.findUnique({ where: { id: "solar" } }))?.desiredState).toBe("MAINTENANCE");
   });
 
   it("rejects stale approvals rather than overwriting a changed control", async () => {
@@ -146,14 +146,14 @@ describe("control approval workflow", () => {
     const proposal = await updateGrid({
       actorSubject: "stale-requester",
       actorRole: Role.FOUNDER,
-      gridId: "internet",
+      gridId: "solar",
       desiredState: "WORKING",
       reason: "Request grid activation"
     });
 
     await prisma.gridConfig.upsert({
-      where: { id: "internet" },
-      create: { id: "internet", desiredState: "MAINTENANCE" },
+      where: { id: "solar" },
+      create: { id: "solar", desiredState: "MAINTENANCE" },
       update: { desiredState: "MAINTENANCE" }
     });
     await expect(decideApproval({
@@ -163,7 +163,7 @@ describe("control approval workflow", () => {
       decision: "APPROVE",
       reason: "Reviewed after state changed"
     })).resolves.toMatchObject({ status: ApprovalStatus.REJECTED, stale: true, applied: false });
-    expect((await prisma.gridConfig.findUnique({ where: { id: "internet" } }))?.desiredState).toBe("MAINTENANCE");
+    expect((await prisma.gridConfig.findUnique({ where: { id: "solar" } }))?.desiredState).toBe("MAINTENANCE");
   });
 
   it("records a rejection and leaves the proposed state unapplied", async () => {
@@ -173,7 +173,7 @@ describe("control approval workflow", () => {
     const proposal = await updateGrid({
       actorSubject: "reject-requester",
       actorRole: Role.FOUNDER,
-      gridId: "internet",
+      gridId: "solar",
       desiredState: "WORKING",
       reason: "Request grid activation"
     });
@@ -185,6 +185,6 @@ describe("control approval workflow", () => {
       decision: "REJECT",
       reason: "The scope is not ready"
     })).resolves.toMatchObject({ status: ApprovalStatus.REJECTED, applied: false });
-    expect((await prisma.gridConfig.findUnique({ where: { id: "internet" } }))?.desiredState).toBe("STANDBY");
+    expect((await prisma.gridConfig.findUnique({ where: { id: "solar" } }))?.desiredState).toBe("STANDBY");
   });
 });
