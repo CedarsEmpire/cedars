@@ -65,6 +65,22 @@
 const pages={
 overview:{title:"Platform overview",sub:"A single operational view of the CEDARS hybrid platform.",html:`
 <div class="notice"><strong>Preview governance is active</strong>All figures on this screen are demonstration data unless explicitly marked as verified runtime evidence. No fiat transactions, payments, withdrawals or financial execution are enabled.</div>
+<section class="card" id="runtimeEvidence" style="margin:0 0 15px">
+ <div class="cardhead"><h2>Live runtime evidence</h2><span class="pill amber" id="runtimeEvidenceStatus">NOT CHECKED</span></div>
+ <p class="muted small">Read-only observations from the Preview API. These checks do not activate services, change configuration or establish production acceptance.</p>
+ <div class="grid layout3">
+  <div class="module"><div class="small muted">API process</div><b id="evidenceApi">NOT CHECKED</b><div class="small muted" id="evidenceApiDetail">Waiting for check</div></div>
+  <div class="module"><div class="small muted">Database</div><b id="evidenceDatabase">NOT CHECKED</b><div class="small muted" id="evidenceDatabaseDetail">Waiting for check</div></div>
+  <div class="module"><div class="small muted">Identity provider</div><b id="evidenceIdentity">NOT CHECKED</b><div class="small muted" id="evidenceIdentityDetail">Waiting for check</div></div>
+  <div class="module"><div class="small muted">Grid control plane</div><b id="evidenceGrids">NOT CHECKED</b><div class="small muted" id="evidenceGridsDetail">Waiting for check</div></div>
+  <div class="module"><div class="small muted">Module control plane</div><b id="evidenceModules">NOT CHECKED</b><div class="small muted" id="evidenceModulesDetail">Waiting for check</div></div>
+  <div class="module"><div class="small muted">Worker runtime</div><b id="evidenceWorkers">NOT CHECKED</b><div class="small muted" id="evidenceWorkersDetail">Waiting for check</div></div>
+ </div>
+ <div class="healthrow"><span>Observed at</span><span id="evidenceObservedAt">Not yet observed</span></div>
+ <div class="healthrow"><span>Financial execution</span><b>DISABLED</b></div>
+ <div class="small muted" id="evidenceError" role="status" aria-live="polite"></div>
+ <button class="btn" id="refreshEvidenceBtn" type="button">↻ Check runtime evidence</button>
+</section>
 <div class="grid stats">
  <div class="card"><div class="statlabel">Economic layers</div><div class="statvalue">4</div><div class="statnote">CEDARS CLOUD · CEDARS UNDERGROUND · CEDARS EARTH · CEDARS HUMAN ACTIVITIES</div></div>
  <div class="card"><div class="statlabel">Revenue engine categories</div><div class="statvalue">7</div><div class="statnote">Original commercial service architecture</div></div>
@@ -277,7 +293,38 @@ let taskRows=[];
 function statusPill(s){return '<span class="pill '+(s==="ON"?"green":s==="OFF"?"red":"amber")+'">'+s+'</span>'}
 function renderCards(id,data,type){document.getElementById(id).innerHTML=data.map((x,i)=>`<article class="module"><div class="moduletop"><div><h3>${x[0]}</h3><p>${x[1]}</p></div>${type==="grid"?statusPill(x[2]):type==="module"?statusPill(x[2]):'<span class="pill amber">CATALOGUED</span>'}</div>${type==="grid"?'<div class="small muted" style="margin:0 0 6px">Evidence / dependency: '+x[3]+'</div><div class="small muted" style="margin:0 0 10px">Classification: '+(x[4]||"Existing prototype catalogue")+'</div><div class="small muted">Lifecycle controls are illustrative only; no service is activated here.</div>':type==="module"?'<div class="seg" data-index="'+i+'" data-type="module"><button data-state="ON" '+(x[2]==="ON"?'class="selected"':'')+'>ON</button><button data-state="STANDBY" '+(x[2]==="STANDBY"?'class="selected"':'')+'>STANDBY</button><button data-state="OFF">OFF</button></div>':'<div class="metricline"><span class="muted small">Runtime</span><b class="pill red">NOT CONNECTED</b></div><button class="btn" disabled>Execution unavailable</button>'}</article>`).join("")}
 function showToast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2400)}
-function openPage(page){const p=pages[page]||pages.overview;document.getElementById("crumb").textContent=p.title;document.querySelectorAll("#nav button[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));document.getElementById("content").innerHTML='<div class="pagehead"><div><div class="eyebrow">CEDARS OS™ · COMMAND CENTER</div><h1>'+p.title+'</h1></div><div class="actions"><button class="btn primary" id="refreshBtn">↻ Refresh</button></div></div>'+p.html+'';if(page==="register")initializeRegistrationPhone();if(page==="grids")renderLayeredGridRegistry();if(page==="modules")renderCards("moduleCards",moduleData,"module");if(page==="workers")renderCards("workerCards",workerData,"worker");if(page==="tasks"){populateTaskGridOptions();renderTasks();}document.getElementById("refreshBtn").onclick=()=>showToast("Prototype view refreshed. No external data was requested.");}
+function openPage(page){const p=pages[page]||pages.overview;document.getElementById("crumb").textContent=p.title;document.querySelectorAll("#nav button[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));document.getElementById("content").innerHTML='<div class="pagehead"><div><div class="eyebrow">CEDARS OS™ · COMMAND CENTER</div><h1>'+p.title+'</h1></div><div class="actions"><button class="btn primary" id="refreshBtn">↻ Refresh</button></div></div>'+p.html+'';if(page==="register")initializeRegistrationPhone();if(page==="grids")renderLayeredGridRegistry();if(page==="modules")renderCards("moduleCards",moduleData,"module");if(page==="workers")renderCards("workerCards",workerData,"worker");if(page==="tasks"){populateTaskGridOptions();renderTasks();}document.getElementById("refreshBtn").onclick=()=>{if(page==="overview")refreshOverviewEvidence();else showToast("Prototype view refreshed. No external data was requested.");};if(page==="overview"){const evidenceButton=document.getElementById("refreshEvidenceBtn");if(evidenceButton)evidenceButton.onclick=refreshOverviewEvidence;refreshOverviewEvidence();}}
+async function refreshOverviewEvidence(){
+ const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value??"unknown";};
+ const label=(value)=>String(value??"unknown").replace(/_/g," ").toUpperCase();
+ set("runtimeEvidenceStatus","CHECKING");
+ set("evidenceError","");
+ for(const id of ["evidenceApi","evidenceDatabase","evidenceIdentity","evidenceGrids","evidenceModules","evidenceWorkers"])set(id,"CHECKING");
+ const request=async(path)=>{const response=await fetch(path,{method:"GET",headers:{Accept:"application/json"},cache:"no-store",credentials:"same-origin"});let body={};try{body=await response.json();}catch{}return {ok:response.ok,status:response.status,body};};
+ try{
+  const results=await Promise.all([request("/api/health"),request("/api/ready")]);
+  const health=results[0],ready=results[1],h=health.body||{},r=ready.body||{},c=r.components||{};
+  set("evidenceApi",health.ok&&h.status==="ok"?"AVAILABLE":"UNAVAILABLE");
+  set("evidenceApiDetail","HTTP "+health.status+" · "+label(h.service||"service unknown"));
+  set("evidenceDatabase",label(c.database||"not reported"));
+  set("evidenceDatabaseDetail",ready.status===503&&c.database==="unavailable"?"Database connection not available":"Readiness HTTP "+ready.status);
+  set("evidenceIdentity",label(c.identity||"not reported"));
+  set("evidenceIdentityDetail","Identity configuration only; no user session is implied");
+  set("evidenceGrids",label(c.gridControlPlane||"not reported"));
+  set("evidenceGridsDetail",(r.grids?.configured??"—")+" / "+(r.grids?.expected??"—")+" configured");
+  set("evidenceModules",label(c.moduleControlPlane||"not reported"));
+  set("evidenceModulesDetail",(r.modules?.configured??"—")+" / "+(r.modules?.expected??"—")+" configured");
+  set("evidenceWorkers",label(c.workerRuntime||"not reported"));
+  set("evidenceWorkersDetail",(r.workers?.configured??"—")+" / "+(r.workers?.expected??"—")+" configurations");
+  set("evidenceObservedAt",r.observedAt||new Date().toISOString());
+  set("runtimeEvidenceStatus",health.ok&&ready.ok&&r.status==="ready"?"READINESS CHECK PASSED":"READINESS NOT PASSED");
+  if(!health.ok||!ready.ok)set("evidenceError","One or more checks returned a non-success HTTP status. Review the observed component results; no LIVE status is inferred.");
+ }catch(error){
+  set("runtimeEvidenceStatus","CHECK FAILED");
+  set("evidenceError","Runtime evidence could not be retrieved. "+(error instanceof Error?error.message:"Network error"));
+  set("evidenceObservedAt",new Date().toISOString());
+ }
+}
 function initializeRegistrationPhone(){
  const phone=document.getElementById("registrationPhone");
  if(!phone||phone.dataset.initialized==="true")return;
