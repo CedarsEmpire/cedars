@@ -324,7 +324,7 @@ async function main() {
     gridsResponse.body !== null &&
     "grids" in gridsResponse.body &&
     Array.isArray(gridsResponse.body.grids) &&
-    gridsResponse.body.grids.length === 34 &&
+    gridsResponse.body.grids.length === 53 &&
     gridsResponse.body.grids.every((grid) =>
       typeof grid === "object" && grid !== null &&
       "runtimeStatus" in grid && grid.runtimeStatus === "NOT_CONNECTED" &&
@@ -348,7 +348,7 @@ async function main() {
   await updateGridHandler({
     method: "PUT",
     headers: bearerHeaders(founderToken),
-    query: { grid: "internet" },
+    query: { grid: "solar" },
     body: { desiredState: "MAINTENANCE", reason: "Test a persisted desired state" }
   } as never, gridUpdateResponse as never);
   assert(gridUpdateResponse.statusCode === 200, `Grid desired-state update returned ${gridUpdateResponse.statusCode}.`);
@@ -366,7 +366,7 @@ async function main() {
   await updateGridHandler({
     method: "PUT",
     headers: bearerHeaders(partnerToken),
-    query: { grid: "internet" },
+    query: { grid: "solar" },
     body: { desiredState: "WORKING", reason: "Partner role denial check" }
   } as never, deniedGridUpdateResponse as never);
   assert(deniedGridUpdateResponse.statusCode === 403, `Partner grid update returned ${deniedGridUpdateResponse.statusCode}, expected 403.`);
@@ -417,7 +417,7 @@ async function main() {
     typeof simulatedGridsResponse.body === "object" && simulatedGridsResponse.body !== null &&
     "grids" in simulatedGridsResponse.body && Array.isArray(simulatedGridsResponse.body.grids) &&
     simulatedGridsResponse.body.grids.some((grid) => typeof grid === "object" && grid !== null &&
-      "id" in grid && grid.id === "internet" && "runtimeMode" in grid && grid.runtimeMode === "SIMULATOR" &&
+      "id" in grid && grid.id === "solar" && "runtimeMode" in grid && grid.runtimeMode === "SIMULATOR" &&
       "runtimeStatus" in grid && grid.runtimeStatus === "SIMULATED_MAINTENANCE" &&
       "integrationStatus" in grid && grid.integrationStatus === "SIMULATOR"),
     "Preview simulator did not report the configured grid state as simulated."
@@ -426,7 +426,7 @@ async function main() {
   await updateGridHandler({
     method: "PUT",
     headers: bearerHeaders(founderToken),
-    query: { grid: "internet" },
+    query: { grid: "solar" },
     body: { desiredState: "WORKING", reason: "Start simulated internet grid" }
   } as never, simulatedGridUpdateResponse as never);
   assert(simulatedGridUpdateResponse.statusCode === 202 &&
@@ -447,7 +447,7 @@ async function main() {
     simulatedGridApprovalResponse.body.approval !== null && "applied" in simulatedGridApprovalResponse.body.approval &&
     simulatedGridApprovalResponse.body.approval.applied === true,
     "Independent grid approval failed.");
-  const approvedGrid = await prisma.gridConfig.findUnique({ where: { id: "internet" } });
+  const approvedGrid = await prisma.gridConfig.findUnique({ where: { id: "solar" } });
   assert(approvedGrid?.desiredState === "WORKING", "Grid state did not apply after independent approval.");
   assert(
     typeof simulatedGridUpdateResponse.body === "object" && simulatedGridUpdateResponse.body !== null &&
@@ -495,7 +495,7 @@ async function main() {
       typeof event === "object" &&
       event !== null &&
       "entityId" in event &&
-      (event.entityId === "healthcare_ai" || event.entityId === "opportunity" || event.entityId === "internet")
+      (event.entityId === "healthcare_ai" || event.entityId === "opportunity" || event.entityId === "solar")
     ),
     "Successful module or worker configuration update was not present in the governance audit response."
   );
@@ -558,8 +558,8 @@ async function main() {
     "gridIntegrations" in readyResponse.body.components && readyResponse.body.components.gridIntegrations === "simulator" &&
     "financialExecution" in readyResponse.body.components && readyResponse.body.components.financialExecution === "disabled" &&
     "grids" in readyResponse.body && typeof readyResponse.body.grids === "object" && readyResponse.body.grids !== null &&
-    "configured" in readyResponse.body.grids && readyResponse.body.grids.configured === 34 &&
-    "expected" in readyResponse.body.grids && readyResponse.body.grids.expected === 34,
+    "configured" in readyResponse.body.grids && readyResponse.body.grids.configured === 53 &&
+    "expected" in readyResponse.body.grids && readyResponse.body.grids.expected === 53,
     "Readiness did not report seeded grid control-plane state separately from disconnected integrations."
   );
   console.log("PASS control-plane readiness is distinct from live operations readiness");
