@@ -144,6 +144,7 @@ function matchRoute(pathname: string, requestMethod: string) {
     { method: "GET", pattern: /^\/api\/modules$/ },
     { method: "GET", pattern: /^\/api\/workers$/ },
     { method: "GET", pattern: /^\/api\/grids$/ },
+    { method: "GET", pattern: /^\\/api\\/customer\\/overview$/ },
     { method: "GET", pattern: /^\/api\/tasks$/ },
     { method: "POST", pattern: /^\/api\/tasks$/ },
     { method: "PUT", pattern: /^\/api\/tasks\/([^/]+)$/ },
