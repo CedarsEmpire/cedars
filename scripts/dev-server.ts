@@ -21,6 +21,7 @@ import approvalsHandler from "../api/admin/approvals/index.ts";
 import decideApprovalHandler from "../api/admin/approvals/[approval].ts";
 import operationsSummaryHandler from "../api/operations/summary.ts";
 import treasuryHandler from "../api/admin/treasury.ts";
+import customerOverviewHandler from "../src/server/handlers/customer-overview.ts";
 import { prisma } from "../src/db.ts";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -143,6 +144,7 @@ function matchRoute(pathname: string, requestMethod: string) {
     { method: "GET", pattern: /^\/api\/modules$/ },
     { method: "GET", pattern: /^\/api\/workers$/ },
     { method: "GET", pattern: /^\/api\/grids$/ },
+    { method: "GET", pattern: /^\/api\/customer\/overview$/ },
     { method: "GET", pattern: /^\/api\/tasks$/ },
     { method: "POST", pattern: /^\/api\/tasks$/ },
     { method: "PUT", pattern: /^\/api\/tasks\/([^/]+)$/ },
@@ -313,6 +315,16 @@ const server = http.createServer(async (request, response) => {
       else if (resolvedQueryKey === "grid") await updateGridHandler(requestProxy, responseProxy as any);
       else if (resolvedQueryKey === "task") await updateGridTaskHandler(requestProxy, responseProxy as any);
       else await updateModuleHandler(requestProxy, responseProxy as any);
+      return;
+    }
+
+    if (url.pathname === "/api/customer/overview") {
+      await customerOverviewHandler({
+        method: request.method,
+        headers: request.headers,
+        query: Object.fromEntries(url.searchParams.entries()),
+        body: {}
+      } as any, responseProxy as any);
       return;
     }
 

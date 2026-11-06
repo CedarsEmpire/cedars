@@ -4,7 +4,8 @@ export const consolidatedApiRoutes = {
   "/api/auth/config": "authConfig",
   "/api/grids": "grids",
   "/api/modules": "modules",
-  "/api/operations/summary": "operationsSummary"
+  "/api/operations/summary": "operationsSummary",
+  "/api/customer/overview": "customerOverview"
 } as const;
 
 export type ConsolidatedApiRoute = keyof typeof consolidatedApiRoutes;
