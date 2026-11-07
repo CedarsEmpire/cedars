@@ -21,9 +21,9 @@ The browser callback is `/hybrid-preview.html` on the Preview branch alias. Use 
 
 Set the following allowed URLs on **CEDARS OS Preview Web**:
 
-- Allowed Callback URLs: `https://cedars-aq5h-git-preview-hybrid-command-ce-2811e9-cedars-empire1.vercel.app/hybrid-preview.html`
-- Allowed Logout URLs: `https://cedars-aq5h-git-preview-hybrid-command-ce-2811e9-cedars-empire1.vercel.app/hybrid-preview.html`
-- Allowed Web Origins: `https://cedars-aq5h-git-preview-hybrid-command-ce-2811e9-cedars-empire1.vercel.app`
+- Allowed Callback URLs: `https://cedars-aq5h-git-preview-auth0-pkce-preview-cedars-empire1.vercel.app/hybrid-preview.html`
+- Allowed Logout URLs: `https://cedars-aq5h-git-preview-auth0-pkce-preview-cedars-empire1.vercel.app/hybrid-preview.html`
+- Allowed Web Origins: `https://cedars-aq5h-git-preview-auth0-pkce-preview-cedars-empire1.vercel.app`
 
 Keep the application as a Single Page Application. Use Authorization Code + PKCE (S256). Do not create or expose a browser Client Secret. If the Preview branch alias changes, update these three URL lists to the verified new alias.
 
