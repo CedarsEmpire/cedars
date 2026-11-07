@@ -11,6 +11,12 @@
       "schedule": "0 0 * * *"
     }
   ],
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/hybrid-preview.html"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
