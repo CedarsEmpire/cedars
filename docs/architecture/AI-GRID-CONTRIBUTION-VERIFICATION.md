@@ -2,7 +2,7 @@
 
 **Status:** Preview architecture decision  
 **Scope:** Grid Contribution Verification Engine and the future Balance read model  
-**Governance:** Preview-only; production frozen; financial execution OFF; public launch OFF
+**Governance:** Preview-only; production remains frozen pending separate transition approval; public launch OFF. Real-money Deposit and Withdrawal capabilities are authorized in principle for controlled development and testing, but live Production transactions remain gated by legal, compliance, security, provider, reconciliation and production-acceptance evidence.
 
 ## 1. Non-negotiable operating model
 
@@ -50,7 +50,7 @@ Keep these concepts separate:
 - **Economic/revenue evidence:** a distinct record requiring a real buyer, defined deliverable, evidence of completion, and independently reconciled payment where relevant.
 - **Financial settlement:** a separate capability subject to its own legal, security, governance, and production approvals.
 
-Do not invent balances, assign a cash equivalent, treat a task's agreed price as earned value, or imply a contribution is paid or withdrawable. No deposits, withdrawals, fiat transactions, wallet credits, token transfers, or financial execution are part of this Preview implementation.
+Do not invent balances, assign a cash equivalent, treat a task's agreed price as earned value, or imply a contribution is paid or withdrawable. Balance, Deposit and Withdrawal remain distinct modules with independent ON/OFF controls. The user has authorized real-money Deposit and Withdrawal capability in principle as part of the architecture and effectiveness testing. This authorization does not itself activate a payment provider or permit live Production transactions. Sandbox and controlled Preview tests must be clearly distinguished from actual settlement. Live Production transactions require separately documented approval plus legal/compliance, provider, security, fraud, customer-consent, dual-control, reconciliation, monitoring and production-acceptance evidence.
 
 ## 5. Explicit exclusions and legacy workflow boundary
 
@@ -70,10 +70,10 @@ Legacy human-operated Grid Tasks may remain only as a separately gated legacy wo
 
 ## 7. Release and safety gates
 
-- Worker and grid execution remain OFF/standby until separately authorized and proven in Preview.
+- Worker and grid execution may be progressively authorized for bounded, controlled Preview operation after the relevant runtime, connector, safety and evidence gates pass; no blanket activation is implied.
 - No status may be marked LIVE by assertion; operational status requires evidence from all relevant release gates.
-- Financial execution remains OFF and public launch remains OFF.
-- No production database, production secrets, production deployment, or live financial system may be modified by this work.
+- Public launch remains OFF. Production remains frozen until a separately approved transition. Financial modules may be developed and tested under their own controls; actual Production transactions remain OFF until separately authorized and all financial acceptance gates pass.
+- No production database, production secrets, production deployment, or live financial system may be modified without explicit authorization for that specific action.
 - Do not introduce a migration or Balance API before the runtime/evidence contract and its threat model are reviewed.
 
 ## 8. Relationship to source vision
