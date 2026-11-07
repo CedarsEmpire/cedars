@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-labelledby="title">
+  <title id="title">CEDARS EMPIRE emblem</title>
+  <circle cx="50" cy="50" r="46" fill="#080908" stroke="#e8c45d" stroke-width="3.8"/>
+  <path d="M81 27 A38 38 0 1 0 81 73" fill="none" stroke="#159b4b" stroke-width="5.8" stroke-linecap="butt"/>
+  <path d="M50 18 C43 25 43 33 39 37 C33 35 30 42 32 46 C25 45 23 53 29 57 C23 62 29 69 35 68 C34 75 42 80 50 83 Z" fill="#159b4b"/>
+  <path d="M50 18 C57 25 57 33 61 37 C67 35 70 42 68 46 C75 45 77 53 71 57 C77 62 71 69 65 68 C66 75 58 80 50 83 Z" fill="#e8c45d"/>
+  <g fill="none" stroke="#080908" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M50 82 V36 M50 55 L37 44 M50 62 L34 61 M50 50 L61 39 M50 68 L66 54 M50 43 L50 32 M50 58 L43 51 M50 58 L57 51"/>
+  </g>
+  <path d="M50 18 V83" stroke="#080908" stroke-width="1.4" opacity=".65"/>
+  <text x="50" y="96" text-anchor="middle" font-family="Arial,sans-serif" font-size="6.5" letter-spacing="1.05" fill="#e8c45d">CEDARS • EMPIRE</text>
+</svg>
