@@ -79,3 +79,59 @@ Legacy human-operated Grid Tasks may remain only as a separately gated legacy wo
 ## 8. Relationship to source vision
 
 This decision preserves the four-layer grid economy and the principle that AI coordinates useful work but does not create money by itself. It applies the user's explicit zero-human-physical-work requirement as a stricter operating constraint than older vision material that describes people or providers as possible execution participants. Human governance and oversight remain permitted; human physical execution does not.
+
+
+## 9. Connection-first integration architecture
+
+Connectivity is a first-class part of the architecture from the beginning. The Preview implementation must not be designed as an isolated simulator with integrations postponed until after the core is built.
+
+Before implementing grid execution, create an integration inventory for every relevant grid and worker. For each integration, record:
+
+- owning grid, purpose, and the AI workers allowed to use it;
+- provider/system name and whether it is an internal service, external API, cloud resource, data source, or automated device/robotic interface;
+- exact capability and data exchanged, including direction and classification;
+- authentication method, secret owner, least-privilege scopes, rotation and revocation procedure;
+- network, region, endpoint, rate-limit, quota, timeout, retry and outage behavior;
+- data provenance, retention, privacy, licensing, and applicable legal/safety constraints;
+- sandbox/Preview endpoint and credentials, separate from all Production resources;
+- health check, connection test, contract test, failure-mode test, and evidence required before the integration can be called operational.
+
+Use provider-neutral, grid-owned connector adapters behind a common integration contract. Workers must receive only explicitly authorized tools through the grid control plane; they must not hold unrestricted provider credentials or call arbitrary external systems. Store secrets only in the approved secret manager/environment, never in source code, logs, task payloads, or contribution evidence.
+
+### Connection state is not execution state
+
+Track these states separately and never collapse them into a single ON/LIVE flag:
+
+1. **DEFINED** — integration contract and owner are documented.
+2. **CONFIGURED** — Preview endpoint and required settings are present.
+3. **CONNECTED** — authenticated handshake/health check succeeds against the intended Preview service.
+4. **CONTRACT_VERIFIED** — request/response, permissions, error handling and data contracts pass tests.
+5. **EXECUTION_VERIFIED** — a controlled authorized AI-worker run uses the connection and produces retained, validated evidence.
+6. **SUSPENDED / FAILED** — connection or verification has failed; dependent execution fails closed.
+
+A successful ping or provider dashboard status does not prove that an AI worker can safely use the integration. A simulated connector does not count as a real connection. A real connection does not, by itself, prove useful execution or contribution value.
+
+### Integration rollout
+
+Build the shared connector framework and integration registry first, then connect the minimum real Preview dependencies required for one end-to-end grid use case. Expand grid by grid using the same contract and evidence gates. Do not attempt to activate every provider or every grid simultaneously; prioritize dependencies, isolate credentials and data, and prove each connection before enabling dependent workers.
+
+The initial dependency assessment must explicitly consider:
+- AI model/inference providers and worker orchestration;
+- cloud compute, storage, queues, and artifact storage;
+- identity, authorization, secrets, and audit logging;
+- grid-specific data sources and service APIs across Cloud, Earth & Surface, Underground, and Human Business;
+- automated device/robotic interfaces where a grid genuinely requires physical-world execution;
+- independent validation, provenance, monitoring, and evidence retention.
+
+Do not assume every grid needs every provider. Identify actual dependencies from the canonical grid catalogue and approved use cases. No physical-world action may be enabled without its own safety interlocks, bounded permissions, emergency stop, and separately approved Preview test plan.
+
+### Revised delivery order
+
+1. Inventory canonical grids, AI workers, runtime mode, existing routes, policies, audit events, tests, and all current external dependencies.
+2. Produce a grid-to-worker-to-integration dependency matrix and classify each connection as defined/configured/connected/contract-verified/execution-verified.
+3. Define the common connector contract, secret handling, authorization boundaries, observability, retries, idempotency, and fail-closed behavior.
+4. Connect the minimum real Preview services needed for a selected end-to-end grid use case; prove each connection with authenticated health and contract tests.
+5. Define the trusted AI-worker runtime and execution/evidence contract; execute a controlled Preview run through the real connections and retain verifiable output provenance.
+6. Only after that proof, implement contribution persistence and the authenticated read-only Balance API.
+7. Test access isolation, revoked/expired credentials, provider outages, replay/duplicate calls, invalid/tampered outputs, unsafe tool requests, and audit integrity.
+8. Verify Preview deployment and database/secret isolation. Do not touch Production.
