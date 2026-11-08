@@ -3,6 +3,7 @@ import {
   assertIndependentVerification,
   canTransitionProcessingJob,
   createProcessingJobSchema,
+  processingJobRecordSchema,
   processingExecutionEvidenceSchema,
   processingVerificationEvidenceSchema,
   ProcessingContractError,
@@ -42,7 +43,7 @@ const executionInput = {
 
 const verificationInput = {
   executionId: executionInput.executionId,
-  verifierId: "independent-verifier-01",
+  verifierPrincipalId: "independent-verifier-principal-01",
   verifierKind: "INDEPENDENT_AUTOMATED",
   inputSha256: executionInput.inputSha256,
   outputSha256: executionInput.outputSha256,
@@ -74,7 +75,7 @@ describe("Data Processing Grid job contract", () => {
   });
 
   it("validates verification evidence and binds it to the exact execution", () => {
-    const job = createProcessingJobSchema.parse(jobInput);
+    const job = processingJobRecordSchema.parse({ ...jobInput, jobId: executionInput.jobId, status: "AUTHORIZED" });
     const execution = processingExecutionEvidenceSchema.parse(executionInput);
     const verification = processingVerificationEvidenceSchema.parse(verificationInput);
     expect(() => assertIndependentVerification(job, execution, verification)).not.toThrow();
@@ -85,10 +86,14 @@ describe("Data Processing Grid job contract", () => {
     const execution = processingExecutionEvidenceSchema.parse(executionInput);
     const selfVerification = processingVerificationEvidenceSchema.parse({
       ...verificationInput,
-      verifierId: execution.workerPrincipalId
+      verifierPrincipalId: execution.workerPrincipalId
     });
     expect(() => assertIndependentVerification(job, execution, selfVerification))
       .toThrow(/cannot verify its own output/);
+
+    const mismatchedJob = { ...job, jobId: "33333333-3333-4333-8333-333333333333" };
+    expect(() => assertIndependentVerification(mismatchedJob, execution, processingVerificationEvidenceSchema.parse(verificationInput)))
+      .toThrow(/job ID does not match/);
 
     const mismatchedOutput = processingVerificationEvidenceSchema.parse({
       ...verificationInput,
