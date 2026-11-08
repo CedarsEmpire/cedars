@@ -97,6 +97,10 @@ export async function executeInvoiceProcessingJob(
   if (worker.workerId !== "data-processing-ai") {
     throw new Error("Authenticated principal is not the Data Processing AI worker.");
   }
+  const verifierIdentity = await input.verifierIdentity.authenticate(input.verifierAssertion);
+  if (verifierIdentity.subject === worker.subject) {
+    throw new Error("The producing worker and independent verifier must have different identities.");
+  }
 
   const lifecycle = ["AUTHORIZED"];
   let status = transitionProcessingJob("AUTHORIZED", "QUEUED");
@@ -132,8 +136,10 @@ export async function executeInvoiceProcessingJob(
     resourceUnits: modelResult.resourceUnits
   });
 
-  const verifierIdentity = await input.verifierIdentity.authenticate(input.verifierAssertion);
   const verifierResult = await input.verifier.verify(input.input, output, input.signal);
+  if (verifierResult.verdict === "PASS" && verifierResult.fieldsReviewed !== verifierResult.requiredFields) {
+    throw new Error("A passing verification must review every required field.");
+  }
   const verification = processingVerificationEvidenceSchema.parse({
     executionId: execution.executionId,
     verifierPrincipalId: verifierIdentity.subject,
