@@ -82,7 +82,7 @@ describe("Data Processing Grid job contract", () => {
   });
 
   it("rejects self-verification and mismatched input/output provenance", () => {
-    const job = createProcessingJobSchema.parse(jobInput);
+    const job = processingJobRecordSchema.parse({ ...jobInput, jobId: executionInput.jobId, status: "AUTHORIZED" });
     const execution = processingExecutionEvidenceSchema.parse(executionInput);
     const selfVerification = processingVerificationEvidenceSchema.parse({
       ...verificationInput,
@@ -104,7 +104,7 @@ describe("Data Processing Grid job contract", () => {
   });
 
   it("does not allow a passing QA verdict without complete source evidence", () => {
-    const job = createProcessingJobSchema.parse(jobInput);
+    const job = processingJobRecordSchema.parse({ ...jobInput, jobId: executionInput.jobId, status: "AUTHORIZED" });
     const execution = processingExecutionEvidenceSchema.parse(executionInput);
     const partial = processingVerificationEvidenceSchema.parse({
       ...verificationInput,
