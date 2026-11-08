@@ -18,6 +18,7 @@ export interface InvoicePageTextExtractor {
 }
 
 type EvidencedField = {
+  key: "dueDate" | "taxAmount" | "other";
   value: string | null;
   evidence: readonly { pageNumber: number; textQuote: string }[];
 };
@@ -40,19 +41,19 @@ function valueIsSupported(value: string | null, quote: string): boolean {
 
 function getFields(output: InvoiceExtraction): EvidencedField[] {
   return [
-    output.supplierName,
-    output.invoiceNumber,
-    output.invoiceDate,
-    output.dueDate,
-    output.currency,
-    output.subtotal,
-    output.taxAmount,
-    output.totalAmount,
+    { ...output.supplierName, key: "other" },
+    { ...output.invoiceNumber, key: "other" },
+    { ...output.invoiceDate, key: "other" },
+    { ...output.dueDate, key: "dueDate" },
+    { ...output.currency, key: "other" },
+    { ...output.subtotal, key: "other" },
+    { ...output.taxAmount, key: "taxAmount" },
+    { ...output.totalAmount, key: "other" },
     ...output.lineItems.flatMap((item) => [
-      item.description,
-      item.quantity,
-      item.unitPrice,
-      item.lineTotal
+      { ...item.description, key: "other" as const },
+      { ...item.quantity, key: "other" as const },
+      { ...item.unitPrice, key: "other" as const },
+      { ...item.lineTotal, key: "other" as const }
     ])
   ];
 }
@@ -89,7 +90,7 @@ export function verifyInvoiceSourceEvidence(
     return field.evidence.length > 0 && field.evidence.every((evidence) => {
       const sourceText = pageMap.get(evidence.pageNumber);
       const quote = normalize(evidence.textQuote);
-      return Boolean(sourceText && quote && sourceText.includes(quote) && valueIsSupported(field.value, quote));
+      return Boolean(sourceText && quote && sourceText.includes(quote) && valueIsSupported(field.value, quote, field.key));
     });
   }).length;
   const coverage = supportedCount / fields.length;
