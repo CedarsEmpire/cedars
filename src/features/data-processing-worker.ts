@@ -156,10 +156,11 @@ export async function executeInvoiceProcessingJob(
 
   assertIndependentVerification(input.job, execution, verification);
   const finalStatus = verifierResult.verdict === "PASS"
-    ? transitionProcessingJob(status, "SUCCEEDED")
+    ? "SUCCEEDED"
     : verifierResult.verdict === "REVIEW_REQUIRED"
-      ? transitionProcessingJob(status, "REVIEW_REQUIRED")
-      : transitionProcessingJob(status, "REJECTED");
+      ? "REVIEW_REQUIRED"
+      : "REJECTED";
+  transitionProcessingJob(status, finalStatus);
   lifecycle.push(finalStatus);
 
   return { status: finalStatus, execution, verification, output, lifecycle };
