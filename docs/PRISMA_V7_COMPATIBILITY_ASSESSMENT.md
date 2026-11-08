@@ -36,7 +36,7 @@ The official [Prisma ORM v7 upgrade guide](https://www.prisma.io/docs/guides/upg
 
 **Upgrade decision: Deferred pending isolated implementation and owner review.** This is not an approved risk acceptance or a final rejection.
 
-The dependency audit's proposed Prisma 7.10.1 fix is a major upgrade. Generator output/imports, adapter installation, database configuration, environment loading, connection-pool behavior, and the six migrations all need validation. This report does not establish that the vulnerable merge function is reachable from an internet request. The production-only audit does establish that the Prisma chain appears in the production dependency set.
+The dependency audit's proposed Prisma 7.10.1 fix is a major upgrade. Generator output/imports, adapter installation, database configuration, environment loading, connection-pool behavior, and the six migrations all need validation. The omit-dev audit result is explained by the Prisma CLI's `devOptional` optional-peer path; it does not establish that the vulnerable merge function ships in the deployed bundle or is reachable from an internet request.
 
 ## Validation status
 
