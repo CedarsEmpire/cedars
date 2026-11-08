@@ -75,18 +75,34 @@ describe("source-grounded invoice evidence verifier", () => {
     ], output).reasonCode).toBe("INVALID_SOURCE_PAGES");
   });
 
+  it("requires a null marker to refer to the nullable field being checked", () => {
+    const unrelatedNullMarker = {
+      ...output,
+      dueDate: { value: null, evidence: [{ pageNumber: 1, textQuote: "Tax: N/A" }] }
+    };
+
+    const result = verifyInvoiceSourceEvidence([
+      { pageNumber: 1, text: `${quote} | Tax: N/A` }
+    ], unrelatedNullMarker);
+
+    expect(result.verdict).toBe("REVIEW_REQUIRED");
+  });
+
   it("does not accept a numeric substring as evidence for a different value", () => {
     const quantityMismatch = {
       ...output,
       lineItems: [{
         ...output.lineItems[0],
-        quantity: { value: "10", evidence: [{ pageNumber: 1, textQuote: "Books 1 x 10.00 = 10.00" }] }
+        quantity: { value: "1", evidence: [{ pageNumber: 1, textQuote: "Books 10" }] }
       }]
     };
 
-    const result = verifyInvoiceSourceEvidence([{ pageNumber: 1, text: quote }], quantityMismatch);
+    const result = verifyInvoiceSourceEvidence([
+      { pageNumber: 1, text: `${quote} | Books 10` }
+    ], quantityMismatch);
 
     expect(result.verdict).toBe("REVIEW_REQUIRED");
+    expect(result.sourceEvidenceCoverage).toBeLessThan(1);
   });
 
   it("adapts an injected page-text extractor and honors cancellation", async () => {
