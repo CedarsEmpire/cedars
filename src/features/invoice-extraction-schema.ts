@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const decimalAmountSchema = z.string().regex(
-  /^(0|[1-9][0-9]*)(\\.[0-9]{1,4})?$/,
+  /^(0|[1-9][0-9]*)(\.[0-9]{1,4})?$/,
   "Use a non-negative decimal string with up to four fractional digits."
 );
 
