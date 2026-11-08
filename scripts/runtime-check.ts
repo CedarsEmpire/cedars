@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { SignJWT, exportJWK, generateKeyPair } from "jose";
 import { Role } from "@prisma/client";
+import { gridCatalog } from "../src/features/grid-catalog.ts";
 
 process.env.CEDARS_USE_IN_MEMORY_DB = "1";
 delete process.env.CEDARS_RUNTIME_MODE;
@@ -324,7 +325,11 @@ async function main() {
     gridsResponse.body !== null &&
     "grids" in gridsResponse.body &&
     Array.isArray(gridsResponse.body.grids) &&
-    gridsResponse.body.grids.length === 53 &&
+    gridsResponse.body.grids.length === gridCatalog.length &&
+    gridCatalog.every((expectedGrid) => gridsResponse.body !== null && "grids" in gridsResponse.body &&
+      Array.isArray(gridsResponse.body.grids) && gridsResponse.body.grids.some((grid) =>
+        typeof grid === "object" && grid !== null && "id" in grid && grid.id === expectedGrid.id
+      )) &&
     gridsResponse.body.grids.every((grid) =>
       typeof grid === "object" && grid !== null &&
       "runtimeStatus" in grid && grid.runtimeStatus === "NOT_CONNECTED" &&
@@ -558,8 +563,8 @@ async function main() {
     "gridIntegrations" in readyResponse.body.components && readyResponse.body.components.gridIntegrations === "simulator" &&
     "financialExecution" in readyResponse.body.components && readyResponse.body.components.financialExecution === "disabled" &&
     "grids" in readyResponse.body && typeof readyResponse.body.grids === "object" && readyResponse.body.grids !== null &&
-    "configured" in readyResponse.body.grids && readyResponse.body.grids.configured === 53 &&
-    "expected" in readyResponse.body.grids && readyResponse.body.grids.expected === 53,
+    "configured" in readyResponse.body.grids && readyResponse.body.grids.configured === gridCatalog.length &&
+    "expected" in readyResponse.body.grids && readyResponse.body.grids.expected === gridCatalog.length,
     "Readiness did not report seeded grid control-plane state separately from disconnected integrations."
   );
   console.log("PASS control-plane readiness is distinct from live operations readiness");
