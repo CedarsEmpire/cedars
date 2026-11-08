@@ -25,6 +25,13 @@ export const createProcessingJobSchema = z.object({
 
 export type CreateProcessingJobInput = z.infer<typeof createProcessingJobSchema>;
 
+export const processingJobRecordSchema = createProcessingJobSchema.extend({
+  jobId: z.string().uuid(),
+  status: processingJobStatusSchema
+}).strict();
+
+export type ProcessingJobRecord = z.infer<typeof processingJobRecordSchema>;
+
 export const processingExecutionEvidenceSchema = z.object({
   executionId: z.string().uuid(),
   jobId: z.string().uuid(),
@@ -52,7 +59,7 @@ export type ProcessingExecutionEvidence = z.infer<typeof processingExecutionEvid
 
 export const processingVerificationEvidenceSchema = z.object({
   executionId: z.string().uuid(),
-  verifierId: z.string().trim().min(3).max(128),
+  verifierPrincipalId: z.string().trim().min(3).max(128),
   verifierKind: z.enum(["INDEPENDENT_AUTOMATED", "HUMAN_REVIEW"]),
   inputSha256: sha256Schema,
   outputSha256: sha256Schema,
@@ -104,10 +111,13 @@ export function transitionProcessingJob(current: ProcessingJobStatus, next: Proc
 
 /** Bind QA evidence to one execution and prohibit producer self-approval. */
 export function assertIndependentVerification(
-  job: CreateProcessingJobInput,
+  job: ProcessingJobRecord,
   execution: ProcessingExecutionEvidence,
   verification: ProcessingVerificationEvidence
 ): void {
+  if (execution.jobId !== job.jobId) {
+    throw new ProcessingContractError("Execution job ID does not match the authorized job.");
+  }
   if (execution.inputSha256.toLowerCase() !== job.inputSha256.toLowerCase()) {
     throw new ProcessingContractError("Execution input hash does not match the authorized job input.");
   }
@@ -120,7 +130,7 @@ export function assertIndependentVerification(
   if (verification.outputSha256.toLowerCase() !== execution.outputSha256.toLowerCase()) {
     throw new ProcessingContractError("Verification output hash does not match the execution.");
   }
-  if (verification.verifierId === execution.workerPrincipalId) {
+  if (verification.verifierPrincipalId === execution.workerPrincipalId) {
     throw new ProcessingContractError("The producing worker cannot verify its own output.");
   }
   if (verification.verdict === "PASS" && verification.sourceEvidenceCoverage < 1) {
