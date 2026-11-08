@@ -72,8 +72,14 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs');
           const report = JSON.parse(fs.readFileSync('npm-audit-report.json', 'utf8'));
+          const production = JSON.parse(fs.readFileSync('npm-audit-production.json', 'utf8'));
           const vulnerabilities = report.vulnerabilities ?? {};
+          const productionCounts = production.metadata?.vulnerabilities ?? {};
           const lines = ['## Dependency finding inventory'];
+          lines.push(`Production-only audit: critical ${productionCounts.critical ?? 0}, high ${productionCounts.high ?? 0}, moderate ${productionCounts.moderate ?? 0}, low ${productionCounts.low ?? 0}`);
+          for (const [name, item] of Object.entries(production.vulnerabilities ?? {}).sort(([a], [b]) => a.localeCompare(b))) {
+            lines.push(`- PRODUCTION ${item.severity.toUpperCase()} ${name}@${item.range}; direct=${item.isDirect}; fixAvailable=${JSON.stringify(item.fixAvailable)}`);
+          }
           for (const [name, item] of Object.entries(vulnerabilities).sort(([a], [b]) => a.localeCompare(b))) {
             const advisories = (item.via ?? []).filter(value => typeof value === 'object').map(value => `${value.title} (${value.url})`);
             const entry = `- ${item.severity.toUpperCase()} ${name}@${item.range}; direct=${item.isDirect}; fixAvailable=${JSON.stringify(item.fixAvailable)}; advisories=${advisories.join('; ') || 'transitive dependency path'}`;
