@@ -13,6 +13,10 @@ export interface InvoiceSourceVerification {
   reasonCode: "ALL_FIELD_EVIDENCE_SUPPORTED" | "SOURCE_EVIDENCE_INCOMPLETE" | "INVALID_SOURCE_PAGES";
 }
 
+export interface InvoicePageTextExtractor {
+  extractPages(input: Uint8Array, signal: AbortSignal): Promise<readonly InvoiceSourcePage[]>;
+}
+
 type EvidencedField = {
   value: string | null;
   evidence: readonly { pageNumber: number; textQuote: string }[];
@@ -74,7 +78,7 @@ export function verifyInvoiceSourceEvidence(
   const fields = getFields(output);
   const incomplete = {
     verdict: "REVIEW_REQUIRED" as const,
-    fieldsReviewed: fields.length,
+    fieldsReviewed: 0,
     requiredFields: fields.length,
     sourceEvidenceCoverage: 0,
     reasonCode: "INVALID_SOURCE_PAGES" as const
@@ -97,5 +101,21 @@ export function verifyInvoiceSourceEvidence(
     requiredFields: fields.length,
     sourceEvidenceCoverage: coverage,
     reasonCode: complete ? "ALL_FIELD_EVIDENCE_SUPPORTED" : "SOURCE_EVIDENCE_INCOMPLETE"
+  };
+}
+
+/** Adapts a trusted page-text extractor to the worker verifier interface. */
+export function createIndependentInvoiceVerifier(
+  policyVersion: string,
+  extractor: InvoicePageTextExtractor
+) {
+  return {
+    policyVersion,
+    async verify(input: Uint8Array, output: InvoiceExtraction, signal: AbortSignal) {
+      if (signal.aborted) throw new Error("Source verification was cancelled before extraction.");
+      const pages = await extractor.extractPages(input, signal);
+      if (signal.aborted) throw new Error("Source verification was cancelled during extraction.");
+      return verifyInvoiceSourceEvidence(pages, output);
+    }
   };
 }
