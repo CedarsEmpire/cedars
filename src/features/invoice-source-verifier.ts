@@ -27,16 +27,18 @@ function normalize(text: string): string {
   return text.normalize("NFKC").toLocaleLowerCase("en").replace(/\s+/g, " ").trim();
 }
 
-function valueIsSupported(value: string | null, quote: string): boolean {
+function valueIsSupported(value: string | null, quote: string, key: EvidencedField["key"]): boolean {
   const normalizedQuote = normalize(quote);
   if (value === null) {
-    return /\b(?:n\/a|not applicable|not provided|not stated|none)\b/u.test(normalizedQuote);
+    if (key === "dueDate") return /\\bdue(?: date)?\\s*[:=-]?\\s*(?:n\\/a|not applicable|not provided|not stated|none)\\b/u.test(normalizedQuote);
+    if (key === "taxAmount") return /\\btax(?: amount)?\\s*[:=-]?\\s*(?:n\\/a|not applicable|not provided|not stated|none)\\b/u.test(normalizedQuote);
+    return false;
   }
 
   const normalizedValue = normalize(value);
   if (!normalizedValue) return false;
-  const escapedValue = normalizedValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`(?<![\\p{L}\\p{N}])${escapedValue}(?![\\p{L}\\p{N}])`, "u").test(normalizedQuote);
+  const escapedValue = normalizedValue.replace(/[.*+?^\u0024{}()|[\\]\\\\]/g, "\\\\$&");
+  return new RegExp(`(?<![\\\\p{L}\\\\p{N}])${escapedValue}(?![\\\\p{L}\\\\p{N}])`, "u").test(normalizedQuote);
 }
 
 function getFields(output: InvoiceExtraction): EvidencedField[] {
