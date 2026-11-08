@@ -40,6 +40,7 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync('npm-audit-production.json', 'utf8'))"
           echo "npm audit --omit=dev exit code: ${audit_exit:-0}" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload dependency audit reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cedars-sprint1-dependency-audit
@@ -48,3 +49,20 @@ jobs:
             npm-audit-production.json
           if-no-files-found: error
           retention-days: 30
+      - name: Enforce dependency audit threshold
+        if: always()
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const reports = ['npm-audit-report.json', 'npm-audit-production.json'];
+          let critical = 0;
+          const lines = ['## Dependency audit threshold'];
+          for (const file of reports) {
+            const report = JSON.parse(fs.readFileSync(file, 'utf8'));
+            const counts = report.metadata?.vulnerabilities ?? {};
+            critical = Math.max(critical, counts.critical ?? 0);
+            lines.push(`- ${file}: critical ${counts.critical ?? 0}, high ${counts.high ?? 0}, moderate ${counts.moderate ?? 0}, low ${counts.low ?? 0}`);
+          }
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\\n') + '\\n');
+          if (critical > 0) process.exit(1);
+          NODE
