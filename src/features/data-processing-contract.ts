@@ -4,25 +4,13 @@ const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/i, "Expected a SHA-256 hex
 const opaqueReferenceSchema = z.string().trim().min(8).max(256);
 
 export const processingJobStatusSchema = z.enum([
-  "DRAFT",
-  "AUTHORIZED",
-  "QUEUED",
-  "RUNNING",
-  "VALIDATING",
-  "REVIEW_REQUIRED",
-  "SUCCEEDED",
-  "FAILED",
-  "REJECTED",
-  "CANCELLED",
-  "EXPIRED"
+  "DRAFT", "AUTHORIZED", "QUEUED", "RUNNING", "VALIDATING",
+  "REVIEW_REQUIRED", "SUCCEEDED", "FAILED", "REJECTED", "CANCELLED", "EXPIRED"
 ]);
 
 export type ProcessingJobStatus = z.infer<typeof processingJobStatusSchema>;
 
-/**
- * Metadata-only request contract. Document bytes and extracted values are
- * deliberately excluded from this API contract and must never be logged here.
- */
+/** Metadata only: never accept document bytes or extracted values in this contract. */
 export const createProcessingJobSchema = z.object({
   tenantRef: opaqueReferenceSchema,
   customerRef: opaqueReferenceSchema,
@@ -41,6 +29,7 @@ export const processingExecutionEvidenceSchema = z.object({
   executionId: z.string().uuid(),
   jobId: z.string().uuid(),
   workerId: z.literal("data-processing-ai"),
+  workerPrincipalId: z.string().trim().min(3).max(128),
   workerVersion: z.string().trim().min(1).max(80),
   modelProvider: z.string().trim().min(1).max(80),
   modelVersion: z.string().trim().min(1).max(120),
@@ -55,11 +44,7 @@ export const processingExecutionEvidenceSchema = z.object({
   resourceUnits: z.number().finite().nonnegative()
 }).strict().superRefine((evidence, context) => {
   if (Date.parse(evidence.completedAt) < Date.parse(evidence.startedAt)) {
-    context.addIssue({
-      code: "custom",
-      path: ["completedAt"],
-      message: "Execution completion cannot precede its start."
-    });
+    context.addIssue({ code: "custom", path: ["completedAt"], message: "Execution completion cannot precede its start." });
   }
 });
 
@@ -79,11 +64,7 @@ export const processingVerificationEvidenceSchema = z.object({
   reasonCode: z.string().trim().min(2).max(80)
 }).strict().superRefine((evidence, context) => {
   if (evidence.fieldsReviewed > evidence.requiredFields) {
-    context.addIssue({
-      code: "custom",
-      path: ["fieldsReviewed"],
-      message: "Reviewed fields cannot exceed the required field count."
-    });
+    context.addIssue({ code: "custom", path: ["fieldsReviewed"], message: "Reviewed fields cannot exceed the required field count." });
   }
 });
 
@@ -110,27 +91,18 @@ export class ProcessingContractError extends Error {
   }
 }
 
-export function canTransitionProcessingJob(
-  current: ProcessingJobStatus,
-  next: ProcessingJobStatus
-): boolean {
+export function canTransitionProcessingJob(current: ProcessingJobStatus, next: ProcessingJobStatus): boolean {
   return allowedTransitions[current].includes(next);
 }
 
-export function transitionProcessingJob(
-  current: ProcessingJobStatus,
-  next: ProcessingJobStatus
-): ProcessingJobStatus {
+export function transitionProcessingJob(current: ProcessingJobStatus, next: ProcessingJobStatus): ProcessingJobStatus {
   if (!canTransitionProcessingJob(current, next)) {
     throw new ProcessingContractError(`Invalid processing job transition: ${current} -> ${next}.`);
   }
   return next;
 }
 
-/**
- * Binds independently supplied verification evidence to the exact execution.
- * The producing worker cannot verify its own output.
- */
+/** Bind QA evidence to one execution and prohibit producer self-approval. */
 export function assertIndependentVerification(
   job: CreateProcessingJobInput,
   execution: ProcessingExecutionEvidence,
@@ -148,7 +120,7 @@ export function assertIndependentVerification(
   if (verification.outputSha256.toLowerCase() !== execution.outputSha256.toLowerCase()) {
     throw new ProcessingContractError("Verification output hash does not match the execution.");
   }
-  if (verification.verifierId === execution.workerId) {
+  if (verification.verifierId === execution.workerPrincipalId) {
     throw new ProcessingContractError("The producing worker cannot verify its own output.");
   }
   if (verification.verdict === "PASS" && verification.sourceEvidenceCoverage < 1) {
