@@ -27,18 +27,31 @@ function normalize(text: string): string {
   return text.normalize("NFKC").toLocaleLowerCase("en").replace(/\s+/g, " ").trim();
 }
 
+function containsWholeValue(quote: string, value: string): boolean {
+  const isWordCharacter = (character: string): boolean => /[\p{L}\p{N}]/u.test(character);
+  let fromIndex = 0;
+  while (fromIndex <= quote.length - value.length) {
+    const index = quote.indexOf(value, fromIndex);
+    if (index < 0) return false;
+    const before = index === 0 ? "" : quote[index - 1]!;
+    const afterIndex = index + value.length;
+    const after = afterIndex >= quote.length ? "" : quote[afterIndex]!;
+    if ((!before || !isWordCharacter(before)) && (!after || !isWordCharacter(after))) return true;
+    fromIndex = index + 1;
+  }
+  return false;
+}
+
 function valueIsSupported(value: string | null, quote: string, key: EvidencedField["key"]): boolean {
   const normalizedQuote = normalize(quote);
   if (value === null) {
-    if (key === "dueDate") return /\\bdue(?: date)?\\s*[:=-]?\\s*(?:n\\/a|not applicable|not provided|not stated|none)\\b/u.test(normalizedQuote);
-    if (key === "taxAmount") return /\\btax(?: amount)?\\s*[:=-]?\\s*(?:n\\/a|not applicable|not provided|not stated|none)\\b/u.test(normalizedQuote);
+    if (key === "dueDate") return /\bdue(?: date)?\s*[:=-]?\s*(?:n\/a|not applicable|not provided|not stated|none)\b/u.test(normalizedQuote);
+    if (key === "taxAmount") return /\btax(?: amount)?\s*[:=-]?\s*(?:n\/a|not applicable|not provided|not stated|none)\b/u.test(normalizedQuote);
     return false;
   }
 
   const normalizedValue = normalize(value);
-  if (!normalizedValue) return false;
-  const escapedValue = normalizedValue.replace(/[.*+?^\u0024{}()|[\\]\\\\]/g, "\\\\$&");
-  return new RegExp(`(?<![\\\\p{L}\\\\p{N}])${escapedValue}(?![\\\\p{L}\\\\p{N}])`, "u").test(normalizedQuote);
+  return normalizedValue.length > 0 && containsWholeValue(normalizedQuote, normalizedValue);
 }
 
 function getFields(output: InvoiceExtraction): EvidencedField[] {
