@@ -66,3 +66,20 @@ jobs:
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
           if (critical > 0) process.exit(1);
           NODE
+      - name: Publish dependency finding inventory
+        if: always()
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const report = JSON.parse(fs.readFileSync('npm-audit-report.json', 'utf8'));
+          const vulnerabilities = report.vulnerabilities ?? {};
+          const lines = ['## Dependency finding inventory'];
+          for (const [name, item] of Object.entries(vulnerabilities).sort(([a], [b]) => a.localeCompare(b))) {
+            const advisories = (item.via ?? []).filter(value => typeof value === 'object').map(value => `${value.title} (${value.url})`);
+            const entry = `- ${item.severity.toUpperCase()} ${name}@${item.range}; direct=${item.isDirect}; fixAvailable=${JSON.stringify(item.fixAvailable)}; advisories=${advisories.join('; ') || 'transitive dependency path'}`;
+            lines.push(entry);
+          }
+          const output = lines.join('\\n') + '\\n';
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, output);
+          process.stdout.write(output);
+          NODE
