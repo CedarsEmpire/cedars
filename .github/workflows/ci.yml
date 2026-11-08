@@ -79,7 +79,7 @@ jobs:
             const entry = `- ${item.severity.toUpperCase()} ${name}@${item.range}; direct=${item.isDirect}; fixAvailable=${JSON.stringify(item.fixAvailable)}; advisories=${advisories.join('; ') || 'transitive dependency path'}`;
             lines.push(entry);
           }
-          const output = lines.join('\\n') + '\\n';
+          const output = lines.join('\n') + '\n';
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, output);
           process.stdout.write(output);
           NODE
