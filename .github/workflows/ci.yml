@@ -81,9 +81,18 @@ jobs:
           for (const [name, item] of Object.entries(production.vulnerabilities ?? {}).sort(([a], [b]) => a.localeCompare(b))) {
             lines.push(`- PRODUCTION ${item.severity.toUpperCase()} ${name}@${item.range}; direct=${item.isDirect}; fixAvailable=${JSON.stringify(item.fixAvailable)}`);
           }
+          const advisoryRecords = (name, seen = new Set()) => {
+            if (seen.has(name)) return [];
+            seen.add(name);
+            const item = vulnerabilities[name];
+            return (item?.via ?? []).flatMap(value =>
+              typeof value === 'string' ? advisoryRecords(value, seen) : [value]
+            );
+          };
           for (const [name, item] of Object.entries(vulnerabilities).sort(([a], [b]) => a.localeCompare(b))) {
-            const advisories = (item.via ?? []).filter(value => typeof value === 'object').map(value => `${value.title} (${value.url})`);
-            const entry = `- ${item.severity.toUpperCase()} ${name}@${item.range}; direct=${item.isDirect}; nodes=${(item.nodes ?? []).map(path => `${path}@${lock.packages?.[path]?.version ?? 'unknown'}`).join(',')}; fixAvailable=${JSON.stringify(item.fixAvailable)}; via=${JSON.stringify(item.via)}; advisories=${advisories.join('; ') || 'see via dependency names'}`;
+            const advisories = [...new Map(advisoryRecords(name).map(value => [value.url, `${value.title} (${value.url})`])).values()];
+            const installed = (item.nodes ?? []).map(path => `${path}@${lock.packages?.[path]?.version ?? 'unknown'}`).join(',');
+            const entry = `- ${item.severity.toUpperCase()} ${name}@${item.range}; direct=${item.isDirect}; installed=${installed}; fixAvailable=${JSON.stringify(item.fixAvailable)}; advisories=${advisories.join('; ') || 'UNRESOLVED: security review required'}`;
             lines.push(entry);
           }
           const output = lines.join('\n') + '\n';
