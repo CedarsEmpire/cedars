@@ -138,7 +138,7 @@ describe("isolated Data Processing worker orchestration", () => {
       workerIdentity: { authenticate: vi.fn().mockResolvedValue({ subject: "same-principal", workerId: "data-processing-ai" }) },
       verifierIdentity: { authenticate: vi.fn().mockResolvedValue({ subject: "same-principal" }) },
       model, verifier, signal: new AbortController().signal
-    })).rejects.toThrow(/cannot verify its own output/);
+    })).rejects.toThrow(/must have different identities/);
   });
 
   it("refuses non-authorized jobs and cancelled executions", async () => {
