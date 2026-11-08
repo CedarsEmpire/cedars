@@ -105,6 +105,19 @@ describe("source-grounded invoice evidence verifier", () => {
     expect(result.sourceEvidenceCoverage).toBeLessThan(1);
   });
 
+  it("honors cancellation that occurs during page extraction", async () => {
+    const controller = new AbortController();
+    const verifier = createIndependentInvoiceVerifier("source-evidence-v1", {
+      extractPages: async () => {
+        controller.abort();
+        return [{ pageNumber: 1, text: quote }];
+      }
+    });
+
+    await expect(verifier.verify(new TextEncoder().encode("synthetic invoice"), output, controller.signal))
+      .rejects.toThrow(/cancelled during extraction/);
+  });
+
   it("adapts an injected page-text extractor and honors cancellation", async () => {
     const input = new TextEncoder().encode("synthetic invoice");
     const extractor = {
