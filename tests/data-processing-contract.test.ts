@@ -25,6 +25,7 @@ const executionInput = {
   executionId: "11111111-1111-4111-8111-111111111111",
   jobId: "22222222-2222-4222-8222-222222222222",
   workerId: "data-processing-ai",
+  workerPrincipalId: "worker-principal-001",
   workerVersion: "0.1.0",
   modelProvider: "test-provider",
   modelVersion: "test-model-v1",
@@ -84,7 +85,7 @@ describe("Data Processing Grid job contract", () => {
     const execution = processingExecutionEvidenceSchema.parse(executionInput);
     const selfVerification = processingVerificationEvidenceSchema.parse({
       ...verificationInput,
-      verifierId: execution.workerId
+      verifierId: execution.workerPrincipalId
     });
     expect(() => assertIndependentVerification(job, execution, selfVerification))
       .toThrow(/cannot verify its own output/);
