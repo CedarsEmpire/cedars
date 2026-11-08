@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { invoiceExtractionSchema } from "../src/features/invoice-extraction-schema.js";
-import { verifyInvoiceSourceEvidence } from "../src/features/invoice-source-verifier.js";
+import { createIndependentInvoiceVerifier, verifyInvoiceSourceEvidence } from "../src/features/invoice-source-verifier.js";
 
 const quote = "Supplier: Example Co | Invoice: INV-001 | Date: 2026-11-01 | Due: N/A | Currency: USD | Subtotal: 10.00 | Tax: N/A | Total: 10.00 | Books 1 x 10.00 = 10.00";
 const evidence = [{ pageNumber: 1, textQuote: quote }];
@@ -62,7 +62,11 @@ describe("source-grounded invoice evidence verifier", () => {
   });
 
   it("routes missing pages, missing quotes, and duplicate page numbers to review", () => {
-    expect(verifyInvoiceSourceEvidence([], output).reasonCode).toBe("INVALID_SOURCE_PAGES");
+    expect(verifyInvoiceSourceEvidence([], output)).toMatchObject({
+      verdict: "REVIEW_REQUIRED",
+      fieldsReviewed: 0,
+      reasonCode: "INVALID_SOURCE_PAGES"
+    });
     expect(verifyInvoiceSourceEvidence([{ pageNumber: 1, text: "Other source text" }], output).verdict)
       .toBe("REVIEW_REQUIRED");
     expect(verifyInvoiceSourceEvidence([
@@ -83,5 +87,26 @@ describe("source-grounded invoice evidence verifier", () => {
     const result = verifyInvoiceSourceEvidence([{ pageNumber: 1, text: quote }], quantityMismatch);
 
     expect(result.verdict).toBe("REVIEW_REQUIRED");
+  });
+
+  it("adapts an injected page-text extractor and honors cancellation", async () => {
+    const input = new TextEncoder().encode("synthetic invoice");
+    const extractor = {
+      extractPages: async (received: Uint8Array, signal: AbortSignal) => {
+        expect(received).toBe(input);
+        expect(signal.aborted).toBe(false);
+        return [{ pageNumber: 1, text: quote }];
+      }
+    };
+    const verifier = createIndependentInvoiceVerifier("source-evidence-v1", extractor);
+    const result = await verifier.verify(input, output, new AbortController().signal);
+
+    expect(verifier.policyVersion).toBe("source-evidence-v1");
+    expect(result.verdict).toBe("PASS");
+
+    const controller = new AbortController();
+    controller.abort();
+    await expect(verifier.verify(input, output, controller.signal))
+      .rejects.toThrow(/cancelled before extraction/);
   });
 });
