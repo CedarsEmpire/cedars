@@ -39,6 +39,8 @@ export async function listWorkers() {
       configured: Boolean(config),
       effectiveState: "BLOCKED" as const,
       blockReason: !globalEnabled ? "GLOBAL_SOFTWARE_OFF" : "WORKER_GRID_ASSIGNMENT_UNVERIFIED",
+      observedState: runtimeMode === "SIMULATOR" ? enabled ? "SIMULATED_RUNNING" : "SIMULATED_STOPPED" : "NOT_CONNECTED",
+      verificationState: "UNVERIFIED",
       runtimeMode,
       runtimeStatus: runtimeMode === "SIMULATOR"
         ? enabled ? "SIMULATED_RUNNING" : "SIMULATED_STOPPED"
@@ -129,6 +131,8 @@ export async function updateWorker(input: {
       configured: true,
       effectiveState: "BLOCKED" as const,
       blockReason: await getGlobalSoftwareEnabled() ? "WORKER_GRID_ASSIGNMENT_UNVERIFIED" : "GLOBAL_SOFTWARE_OFF",
+      observedState: runtimeStatus,
+      verificationState: "UNVERIFIED",
       runtimeMode,
       runtimeStatus
     };
