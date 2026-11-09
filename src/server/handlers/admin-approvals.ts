@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Role } from "@prisma/client";
-import { AuthorizationError, authenticateRequest } from "../../../src/auth/authorization.js";
-import { listApprovalRequests, requireApprovalAccess } from "../../../src/features/approvals.js";
+import { AuthorizationError, authenticateRequest } from "../../auth/authorization.js";
+import { listApprovalRequests, requireApprovalAccess } from "../../features/approvals.js";
 
 export default async function approvalsHandler(request: VercelRequest, response: VercelResponse) {
   response.setHeader("Cache-Control", "private, no-store");

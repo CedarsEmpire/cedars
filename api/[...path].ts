@@ -10,13 +10,24 @@ const handlerLoaders: Record<NonNullable<ReturnType<typeof resolveConsolidatedAp
   "/api/grids": () => import("../src/server/handlers/grids.js"),
   "/api/modules": () => import("../src/server/handlers/modules.js"),
   "/api/operations/summary": () => import("../src/server/handlers/operations-summary.js"),
-  "/api/customer/overview": () => import("../src/server/handlers/customer-overview.js")
+  "/api/customer/overview": () => import("../src/server/handlers/customer-overview.js"),
+  "/api/admin/approvals": () => import("../src/server/handlers/admin-approvals.js"),
+  "/api/admin/approvals/:approval": () => import("../src/server/handlers/admin-approval-decision.js"),
+  "/api/tasks": () => import("../src/server/handlers/grid-tasks.js"),
+  "/api/tasks/:task": () => import("../src/server/handlers/grid-task-update.js")
 };
 
 export default async function consolidatedApiHandler(request: VercelRequest, response: VercelResponse) {
   const pathname = new URL(request.url ?? "/", "https://cedars.invalid").pathname;
   const route = resolveConsolidatedApiRoute(pathname);
   if (!route) return response.status(404).json({ error: "API route not found." });
+
+  const segments = pathname.replace(/\/+$/, "").split("/");
+  if (route === "/api/admin/approvals/:approval") {
+    request.query = { ...request.query, approval: segments[4] };
+  } else if (route === "/api/tasks/:task") {
+    request.query = { ...request.query, task: segments[3] };
+  }
 
   try {
     // Load only the requested handler. Database-backed modules initialize Prisma

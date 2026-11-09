@@ -1,12 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Role } from "@prisma/client";
 import { z } from "zod";
-import { AuthorizationError, authenticateRequest } from "../../../src/auth/authorization.js";
+import { AuthorizationError, authenticateRequest } from "../../auth/authorization.js";
 import {
   ApprovalWorkflowError,
   approvalDecisionSchema,
   decideApproval
-} from "../../../src/features/approvals.js";
+} from "../../features/approvals.js";
 
 const approvalIdSchema = z.string().uuid();
 

@@ -1,13 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { z } from "zod";
-import { AuthorizationError, authenticateRequest } from "../../src/auth/authorization.js";
+import { AuthorizationError, authenticateRequest } from "../../auth/authorization.js";
 import {
   createGridTask,
   createGridTaskSchema,
   listGridTasks,
   presentGridTask,
   requireGridTaskAccess
-} from "../../src/features/grid-tasks.js";
+} from "../../features/grid-tasks.js";
 
 export default async function gridTasksHandler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== "GET" && request.method !== "POST") {

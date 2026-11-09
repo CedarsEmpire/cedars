@@ -1,12 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { z } from "zod";
-import { AuthorizationError, authenticateRequest } from "../../src/auth/authorization.js";
+import { AuthorizationError, authenticateRequest } from "../../auth/authorization.js";
 import {
   GridTaskError,
   requireGridTaskAccess,
   updateGridTask,
   updateGridTaskSchema
-} from "../../src/features/grid-tasks.js";
+} from "../../features/grid-tasks.js";
 
 const taskIdSchema = z.string().uuid();
 
