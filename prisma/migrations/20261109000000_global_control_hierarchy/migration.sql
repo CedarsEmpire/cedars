@@ -28,6 +28,18 @@ CREATE TABLE "control_scope_configs" (
 
 CREATE UNIQUE INDEX "control_scope_configs_scope_type_scope_id_key"
     ON "control_scope_configs"("scope_type", "scope_id");
+
+ALTER TABLE "control_scope_configs" ENABLE ROW LEVEL SECURITY;
+
+DO $
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+    EXECUTE 'REVOKE ALL ON TABLE "control_scope_configs" FROM anon';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    EXECUTE 'REVOKE ALL ON TABLE "control_scope_configs" FROM authenticated';
+  END IF;
+END $;
 CREATE INDEX "control_scope_configs_scope_type_enabled_idx"
     ON "control_scope_configs"("scope_type", "enabled");
 
