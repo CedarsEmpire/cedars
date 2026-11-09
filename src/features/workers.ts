@@ -5,6 +5,7 @@ import { prisma } from "../db.js";
 import { workerCatalog } from "./worker-catalog.js";
 import { getRuntimeMode } from "./runtime-mode.js";
 import { requestControlApproval } from "./approvals.js";
+import { getGlobalSoftwareEnabled } from "./control-hierarchy.js";
 
 export const workerIdSchema = z.string().refine(
   (value) => workerCatalog.some((worker) => worker.id === value),
@@ -27,14 +28,20 @@ export async function listWorkers() {
   const configById = new Map(configs.map((config) => [config.id, config]));
   const runtimeMode = getRuntimeMode();
 
+  const globalEnabled = await getGlobalSoftwareEnabled();
   return workerCatalog.map((worker) => {
     const config = configById.get(worker.id);
     const enabled = config?.enabled ?? false;
     return {
       ...worker,
       enabled,
+      desiredEnabled: enabled,
       desiredInstances: config?.desiredInstances ?? 1,
       configured: Boolean(config),
+      effectiveState: "BLOCKED" as "BLOCKED" | "ELIGIBLE",
+      blockReason: !globalEnabled ? "GLOBAL_SOFTWARE_OFF" : "WORKER_GRID_ASSIGNMENT_UNVERIFIED",
+      observedState: runtimeMode === "SIMULATOR" ? enabled ? "SIMULATED_RUNNING" : "SIMULATED_STOPPED" : "NOT_CONNECTED",
+      verificationState: "UNVERIFIED",
       runtimeMode,
       runtimeStatus: runtimeMode === "SIMULATOR"
         ? enabled ? "SIMULATED_RUNNING" : "SIMULATED_STOPPED"
@@ -123,6 +130,10 @@ export async function updateWorker(input: {
       enabled: config.enabled,
       desiredInstances: config.desiredInstances,
       configured: true,
+      effectiveState: "BLOCKED" as const,
+      blockReason: await getGlobalSoftwareEnabled() ? "WORKER_GRID_ASSIGNMENT_UNVERIFIED" : "GLOBAL_SOFTWARE_OFF",
+      observedState: runtimeStatus,
+      verificationState: "UNVERIFIED",
       runtimeMode,
       runtimeStatus
     };

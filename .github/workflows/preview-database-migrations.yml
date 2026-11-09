@@ -91,7 +91,8 @@ jobs:
             '20261029000000_grid_control_plane',
             '20261030000000_treasury_observation_ledger',
             '20261102000000_grid_task_work_orders',
-            '20261103000000_control_approvals'
+            '20261103000000_control_approvals',
+            '20261109000000_global_control_hierarchy'
           ];
           const expectedTables = [
             'users',
@@ -99,6 +100,7 @@ jobs:
             'audit_logs',
             'approval_requests',
             'approval_decisions',
+            'control_scope_configs',
             'worker_configs',
             'grid_configs',
             'grid_tasks',
@@ -124,6 +126,45 @@ jobs:
               ORDER BY table_name
             `;
             const tableNames = tables.map(row => row.table_name);
+            const columns = await prisma.$queryRaw`
+              SELECT table_name, column_name
+              FROM information_schema.columns
+              WHERE table_schema = 'public'
+                AND table_name IN ('control_scope_configs', 'grid_configs')
+            `;
+            const columnKeys = new Set(columns.map(row => `${row.table_name}.${row.column_name}`));
+            const expectedColumns = [
+              'control_scope_configs.scope_type',
+              'control_scope_configs.scope_id',
+              'control_scope_configs.enabled',
+              'control_scope_configs.control_version',
+              'control_scope_configs.updated_by_id',
+              'grid_configs.authorized_global_control_version',
+              'grid_configs.authorized_layer_control_version'
+            ];
+            const missingColumns = expectedColumns.filter(name => !columnKeys.has(name));
+            const indexes = await prisma.$queryRaw`
+              SELECT indexname
+              FROM pg_indexes
+              WHERE schemaname = 'public'
+            `;
+            const indexNames = indexes.map(row => row.indexname);
+            const requiredIndexes = ['approval_requests_one_pending_per_target_key'];
+            const missingIndexes = requiredIndexes.filter(name => !indexNames.includes(name));
+            const controlTableSecurity = await prisma.$queryRaw`
+              SELECT c.relrowsecurity AS rls_enabled
+              FROM pg_class c
+              JOIN pg_namespace n ON n.oid = c.relnamespace
+              WHERE n.nspname = 'public' AND c.relname = 'control_scope_configs'
+            `;
+            const publicRoleGrants = await prisma.$queryRaw`
+              SELECT grantee, privilege_type
+              FROM information_schema.role_table_grants
+              WHERE table_schema = 'public' AND table_name = 'control_scope_configs'
+                AND grantee IN ('anon', 'authenticated')
+            `;
+            const controlScopeRlsEnabled = controlTableSecurity[0]?.rls_enabled === true;
+            const publicRolesHaveNoControlScopePrivileges = publicRoleGrants.length === 0;
             const missingMigrations = expectedMigrations.filter(name => !applied.includes(name));
             const unexpectedApplied = applied.filter(name => !expectedMigrations.includes(name));
             const missingTables = expectedTables.filter(name => !tableNames.includes(name));
@@ -131,6 +172,8 @@ jobs:
             const evidence = {
               result: missingMigrations.length === 0 && unexpectedApplied.length === 0 &&
                 pendingOrFailed.length === 0 && missingTables.length === 0 &&
+                missingColumns.length === 0 && missingIndexes.length === 0 &&
+                controlScopeRlsEnabled && publicRolesHaveNoControlScopePrivileges &&
                 applied.length === expectedMigrations.length ? 'PASS' : 'FAIL',
               expectedMigrationCount: expectedMigrations.length,
               appliedMigrations: applied,
@@ -138,6 +181,12 @@ jobs:
               unexpectedAppliedMigrations: unexpectedApplied,
               requiredTables: expectedTables,
               missingRequiredTables: missingTables,
+              requiredColumns: expectedColumns,
+              missingRequiredColumns: missingColumns,
+              requiredIndexes,
+              missingRequiredIndexes: missingIndexes,
+              controlScopeRlsEnabled,
+              publicRolesHaveNoControlScopePrivileges,
               observedPublicTables: tableNames
             };
             writeFileSync('preview-db-verification.json', JSON.stringify(evidence, null, 2) + '\n');

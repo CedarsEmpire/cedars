@@ -6,6 +6,9 @@ import { gridCatalog } from "./grid-catalog.js";
 import { moduleNames } from "./module-catalog.js";
 import { workerCatalog } from "./worker-catalog.js";
 import { requestControlApproval } from "./approvals.js";
+import { getGlobalSoftwareEnabled, listControlScopes } from "./control-hierarchy.js";
+import { listGrids } from "./grids.js";
+import { listWorkers } from "./workers.js";
 
 export { moduleNames } from "./module-catalog.js";
 
@@ -35,8 +38,19 @@ export function assertModuleUpdateAllowed(role: Role, moduleName: string, enable
 }
 
 export async function listModules() {
-  const flags = await prisma.featureFlag.findMany({ orderBy: { moduleName: "asc" } });
-  return flags;
+  const [flags, globalEnabled] = await Promise.all([
+    prisma.featureFlag.findMany({ orderBy: { moduleName: "asc" } }),
+    getGlobalSoftwareEnabled()
+  ]);
+  return flags.map((flag) => ({
+    ...flag,
+    desiredEnabled: flag.enabled,
+    effectiveEnabled: false,
+    effectiveState: "BLOCKED",
+    blockReason: !globalEnabled ? "GLOBAL_SOFTWARE_OFF" : flag.enabled ? "MODULE_GRID_ASSIGNMENT_UNVERIFIED" : "MODULE_DISABLED",
+    observedState: "NOT_CONNECTED",
+    verificationState: "UNVERIFIED"
+  }));
 }
 
 export async function getOperationsSummary() {
@@ -46,7 +60,10 @@ export async function getOperationsSummary() {
     enabledWorkers,
     workingGrids,
     mostRecentChange,
-    mostRecentAudit
+    mostRecentAudit,
+    effectiveGridStates,
+    effectiveWorkerStates,
+    controlScopes
   ] = await Promise.all([
     prisma.featureFlag.count(),
     prisma.featureFlag.count({ where: { enabled: true } }),
@@ -66,14 +83,18 @@ export async function getOperationsSummary() {
         payload: true,
         actor: { select: { role: true } }
       }
-    })
+    }),
+    listGrids(),
+    listWorkers(),
+    listControlScopes()
   ]);
 
   return {
     observedAt: new Date().toISOString(),
-    modules: { total: totalModules, enabled: enabledModules },
-    workers: { total: workerCatalog.length, enabled: enabledWorkers },
-    grids: { total: gridCatalog.length, working: workingGrids },
+    modules: { total: totalModules, enabled: enabledModules, desiredEnabled: enabledModules, effectiveEnabled: 0 },
+    workers: { total: workerCatalog.length, enabled: enabledWorkers, desiredEnabled: enabledWorkers, effectiveEligible: effectiveWorkerStates.filter((worker) => worker.effectiveState === "ELIGIBLE").length },
+    grids: { total: gridCatalog.length, working: workingGrids, desiredWorking: workingGrids, effectiveEligible: effectiveGridStates.filter((grid) => grid.effectiveState === "ELIGIBLE").length },
+    controlScopes,
     lastModuleChange: mostRecentChange,
     lastAuditEvent: mostRecentAudit ?? null
   };

@@ -21,6 +21,17 @@ type FeatureFlagRecord = {
   updatedAt: Date;
 };
 
+type ControlScopeConfigRecord = {
+  id: string;
+  scopeType: string;
+  scopeId: string;
+  enabled: boolean;
+  controlVersion: number;
+  updatedById: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 type AuditLogRecord = {
   id: string;
   actorId: string;
@@ -43,6 +54,8 @@ type WorkerConfigRecord = {
 type GridConfigRecord = {
   id: string;
   desiredState: "STANDBY" | "WORKING" | "MAINTENANCE";
+  authorizedGlobalControlVersion: number | null;
+  authorizedLayerControlVersion: number | null;
   updatedById: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -118,6 +131,7 @@ function createInMemoryPrisma() {
   const users = new Map<string, UserRecord>();
   const usersById = new Map<string, UserRecord>();
   const featureFlags = new Map<string, FeatureFlagRecord>();
+  const controlScopeConfigs = new Map<string, ControlScopeConfigRecord>();
   const workerConfigs = new Map<string, WorkerConfigRecord>();
   const gridConfigs = new Map<string, GridConfigRecord>();
   const gridTasks = new Map<string, GridTaskRecord>();
@@ -150,6 +164,8 @@ function createInMemoryPrisma() {
     gridConfigs.set(grid.id, {
       id: grid.id,
       desiredState: "STANDBY",
+      authorizedGlobalControlVersion: null,
+      authorizedLayerControlVersion: null,
       updatedById: null,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -166,6 +182,12 @@ function createInMemoryPrisma() {
   });
 
   const normalizeFlag = (record: FeatureFlagRecord) => ({
+    ...record,
+    createdAt: new Date(record.createdAt),
+    updatedAt: new Date(record.updatedAt)
+  });
+
+  const normalizeControlScopeConfig = (record: ControlScopeConfigRecord) => ({
     ...record,
     createdAt: new Date(record.createdAt),
     updatedAt: new Date(record.updatedAt)
@@ -340,6 +362,46 @@ function createInMemoryPrisma() {
     }
   };
 
+  const controlScopeConfigStore = {
+    findMany: async ({ where }: { where?: { scopeType?: string; scopeId?: string } } = {}) => {
+      return [...controlScopeConfigs.values()]
+        .filter((record) => (!where?.scopeType || record.scopeType === where.scopeType) &&
+          (!where?.scopeId || record.scopeId === where.scopeId))
+        .map(normalizeControlScopeConfig);
+    },
+    findUnique: async ({ where }: { where: { scopeType_scopeId: { scopeType: string; scopeId: string } } }) => {
+      const key = `${where.scopeType_scopeId.scopeType}:${where.scopeType_scopeId.scopeId}`;
+      const record = controlScopeConfigs.get(key);
+      return record ? normalizeControlScopeConfig(record) : null;
+    },
+    upsert: async ({ where, create, update }: {
+      where: { scopeType_scopeId: { scopeType: string; scopeId: string } };
+      create: { scopeType: string; scopeId: string; enabled: boolean; controlVersion?: number; updatedById?: string | null };
+      update: Partial<{ enabled: boolean; controlVersion: number | { increment: number }; updatedById: string | null }>;
+    }) => {
+      const key = `${where.scopeType_scopeId.scopeType}:${where.scopeType_scopeId.scopeId}`;
+      const current = controlScopeConfigs.get(key);
+      const requestedVersion = update.controlVersion;
+      const nextVersion = typeof requestedVersion === "number"
+        ? requestedVersion
+        : current ? current.controlVersion + (requestedVersion?.increment ?? 0) : 0;
+      const record: ControlScopeConfigRecord = current
+        ? { ...current, enabled: update.enabled ?? current.enabled, controlVersion: nextVersion, updatedById: update.updatedById ?? current.updatedById, updatedAt: new Date() }
+        : {
+            id: randomUUID(),
+            scopeType: create.scopeType,
+            scopeId: create.scopeId,
+            enabled: create.enabled,
+            controlVersion: create.controlVersion ?? 0,
+            updatedById: create.updatedById ?? null,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+      controlScopeConfigs.set(key, record);
+      return normalizeControlScopeConfig(record);
+    }
+  };
+
   const workerConfigStore = {
     findMany: async ({ orderBy }: { orderBy?: { id?: "asc" | "desc" } } = {}) => {
       const rows = Array.from(workerConfigs.values());
@@ -399,14 +461,27 @@ function createInMemoryPrisma() {
     },
     upsert: async ({ where, create, update }: {
       where: { id: string };
-      create: { id: string; desiredState: GridConfigRecord["desiredState"]; updatedById?: string | null };
-      update: Partial<{ desiredState: GridConfigRecord["desiredState"]; updatedById: string | null }>;
+      create: {
+        id: string;
+        desiredState: GridConfigRecord["desiredState"];
+        authorizedGlobalControlVersion?: number | null;
+        authorizedLayerControlVersion?: number | null;
+        updatedById?: string | null;
+      };
+      update: Partial<{
+        desiredState: GridConfigRecord["desiredState"];
+        authorizedGlobalControlVersion: number | null;
+        authorizedLayerControlVersion: number | null;
+        updatedById: string | null;
+      }>;
     }) => {
       const current = gridConfigs.get(where.id);
       if (current) {
         const next: GridConfigRecord = {
           ...current,
           desiredState: update.desiredState ?? current.desiredState,
+          authorizedGlobalControlVersion: update.authorizedGlobalControlVersion ?? current.authorizedGlobalControlVersion,
+          authorizedLayerControlVersion: update.authorizedLayerControlVersion ?? current.authorizedLayerControlVersion,
           updatedById: update.updatedById ?? current.updatedById,
           updatedAt: new Date()
         };
@@ -417,6 +492,8 @@ function createInMemoryPrisma() {
       const created: GridConfigRecord = {
         id: create.id,
         desiredState: create.desiredState,
+        authorizedGlobalControlVersion: create.authorizedGlobalControlVersion ?? null,
+        authorizedLayerControlVersion: create.authorizedLayerControlVersion ?? null,
         updatedById: create.updatedById ?? null,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -645,6 +722,7 @@ function createInMemoryPrisma() {
   type MemoryTransaction = {
     user: typeof userStore;
     featureFlag: typeof featureFlagStore;
+    controlScopeConfig: typeof controlScopeConfigStore;
     workerConfig: typeof workerConfigStore;
     gridConfig: typeof gridConfigStore;
     gridTask: typeof gridTaskStore;
@@ -658,6 +736,7 @@ function createInMemoryPrisma() {
   const transaction: MemoryTransaction = {
     user: userStore,
     featureFlag: featureFlagStore,
+    controlScopeConfig: controlScopeConfigStore,
     workerConfig: workerConfigStore,
     gridConfig: gridConfigStore,
     gridTask: gridTaskStore,
@@ -671,6 +750,7 @@ function createInMemoryPrisma() {
   return {
     user: userStore,
     featureFlag: featureFlagStore,
+    controlScopeConfig: controlScopeConfigStore,
     workerConfig: workerConfigStore,
     gridConfig: gridConfigStore,
     gridTask: gridTaskStore,

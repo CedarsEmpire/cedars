@@ -5,6 +5,7 @@ import { prisma } from "../db.js";
 import { gridCatalog, gridIds, type GridDesiredState } from "./grid-catalog.js";
 import { getRuntimeMode } from "./runtime-mode.js";
 import { requestControlApproval } from "./approvals.js";
+import { evaluateGridControl, getGridParentSnapshot } from "./control-hierarchy.js";
 
 export const gridIdSchema = z.enum(gridIds);
 export const gridDesiredStateSchema = z.enum(["STANDBY", "WORKING", "MAINTENANCE"]);
@@ -24,9 +25,10 @@ export async function listGrids() {
   const configById = new Map(configs.map((config) => [config.id, config]));
   const runtimeMode = getRuntimeMode();
 
-  return gridCatalog.map((grid) => {
+  return Promise.all(gridCatalog.map(async (grid) => {
     const config = configById.get(grid.id);
     const desiredState = (config?.desiredState ?? "STANDBY") as GridDesiredState;
+    const control = await evaluateGridControl(grid.id, desiredState, { globalVersion: config?.authorizedGlobalControlVersion ?? null, layerVersion: config?.authorizedLayerControlVersion ?? null });
     return {
       ...grid,
       dependencies: grid.dependsOn.map((id) => ({
@@ -34,12 +36,16 @@ export async function listGrids() {
         name: gridCatalog.find((dependency) => dependency.id === id)?.name ?? id
       })),
       desiredState,
+      effectiveState: control.effectiveState,
+      blockReason: control.blockReason,
       configured: Boolean(config),
       runtimeMode,
       runtimeStatus: runtimeMode === "SIMULATOR" ? `SIMULATED_${desiredState}` : "NOT_CONNECTED",
+      observedState: runtimeMode === "SIMULATOR" ? `SIMULATED_${desiredState}` : "NOT_CONNECTED",
+      verificationState: "UNVERIFIED",
       integrationStatus: runtimeMode === "SIMULATOR" ? "SIMULATOR" : "NOT_CONFIGURED"
     };
-  });
+  }));
 }
 
 export async function updateGrid(input: {
@@ -54,15 +60,17 @@ export async function updateGrid(input: {
   if (!grid) throw new Error("Grid is not in the supported catalog.");
   const runtimeMode = getRuntimeMode();
   const current = await prisma.gridConfig.findUnique({ where: { id: input.gridId } });
-  const currentState = current?.desiredState ?? "STANDBY";
-  if (input.desiredState === "WORKING" && currentState !== "WORKING") {
+  const currentState = (current?.desiredState ?? "STANDBY") as GridDesiredState;
+  const currentControl = await evaluateGridControl(input.gridId, currentState, { globalVersion: current?.authorizedGlobalControlVersion ?? null, layerVersion: current?.authorizedLayerControlVersion ?? null });
+  if (input.desiredState === "WORKING" &&
+      (currentState !== "WORKING" || (currentControl.blockReason === "PARENT_AUTHORIZATION_CHANGED" || currentControl.blockReason === "PARENT_AUTHORIZATION_REQUIRED"))) {
     const approval = await requestControlApproval({
       actorSubject: input.actorSubject,
       actorRole: input.actorRole,
       scope: "GRID_WORKING",
       entityType: "GRID_CONFIG",
       entityId: input.gridId,
-      expectedState: { desiredState: currentState },
+      expectedState: { desiredState: currentState, gridAuthorizationGlobalVersion: current?.authorizedGlobalControlVersion ?? -1, gridAuthorizationLayerVersion: current?.authorizedLayerControlVersion ?? -1, ...(await getGridParentSnapshot(input.gridId)) },
       proposedState: { desiredState: input.desiredState },
       reason: input.reason
     });
@@ -100,6 +108,7 @@ export async function updateGrid(input: {
       }
     });
 
+    const control = await evaluateGridControl(input.gridId, config.desiredState as GridDesiredState, { globalVersion: config.authorizedGlobalControlVersion, layerVersion: config.authorizedLayerControlVersion });
     return {
       ...grid,
       dependencies: grid.dependsOn.map((id) => ({
@@ -107,9 +116,13 @@ export async function updateGrid(input: {
         name: gridCatalog.find((dependency) => dependency.id === id)?.name ?? id
       })),
       desiredState: config.desiredState as GridDesiredState,
+      effectiveState: control.effectiveState,
+      blockReason: control.blockReason,
       configured: true,
       runtimeMode,
       runtimeStatus,
+      observedState: runtimeStatus,
+      verificationState: "UNVERIFIED",
       integrationStatus
     };
   });

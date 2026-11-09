@@ -2,6 +2,7 @@ import { ApprovalDecisionType, ApprovalStatus, Prisma, Role } from "@prisma/clie
 import { z } from "zod";
 import { AuthorizationError } from "../auth/authorization.js";
 import { prisma } from "../db.js";
+import { gridCatalog } from "./grid-catalog.js";
 
 export const approvalDecisionSchema = z.object({
   decision: z.enum(["APPROVE", "REJECT"]),
@@ -73,14 +74,15 @@ export async function requestControlApproval(input: {
   actorSubject: string;
   actorRole: Role;
   scope: string;
-  entityType: "FEATURE_FLAG" | "WORKER_CONFIG" | "GRID_CONFIG";
+  entityType: "FEATURE_FLAG" | "WORKER_CONFIG" | "GRID_CONFIG" | "CONTROL_SCOPE_CONFIG";
   entityId: string;
   expectedState: Record<string, string | number | boolean>;
   proposedState: Record<string, string | number | boolean>;
   reason: string;
 }) {
   const requiredApproverRoles = requiredControlRoles(input.actorRole);
-  return prisma.$transaction(async (transaction) => {
+  try {
+    return await prisma.$transaction(async (transaction) => {
     const pending = await transaction.approvalRequest.findMany({
       where: {
         status: ApprovalStatus.PENDING,
@@ -128,7 +130,13 @@ export async function requestControlApproval(input: {
       }
     });
     return request;
-  });
+    });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
+      throw new ApprovalWorkflowError(409, "A control change for this item is already pending review.");
+    }
+    throw error;
+  }
 }
 
 async function getCurrentState(
@@ -145,7 +153,37 @@ async function getCurrentState(
   }
   if (request.entityType === "GRID_CONFIG") {
     const grid = await transaction.gridConfig.findUnique({ where: { id: request.entityId } });
-    return { desiredState: grid?.desiredState ?? "STANDBY" };
+    const catalogEntry = gridCatalog.find((item) => item.id === request.entityId);
+    if (!catalogEntry) return null;
+    const [globalControl, layerControl] = await Promise.all([
+      transaction.controlScopeConfig.findUnique({
+        where: { scopeType_scopeId: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global" } }
+      }),
+      transaction.controlScopeConfig.findUnique({
+        where: { scopeType_scopeId: { scopeType: "ECONOMIC_LAYER", scopeId: catalogEntry.layer } }
+      })
+    ]);
+    return {
+      desiredState: grid?.desiredState ?? "STANDBY",
+      gridAuthorizationGlobalVersion: grid?.authorizedGlobalControlVersion ?? -1,
+      gridAuthorizationLayerVersion: grid?.authorizedLayerControlVersion ?? -1,
+      globalEnabled: globalControl?.enabled ?? false,
+      layerEnabled: layerControl?.enabled ?? false,
+      globalControlVersion: globalControl?.controlVersion ?? -1,
+      layerControlVersion: layerControl?.controlVersion ?? -1
+    };
+  }
+  if (request.entityType === "CONTROL_SCOPE_CONFIG") {
+    const separator = request.entityId.indexOf(":");
+    if (separator < 1) return null;
+    const scopeType = request.entityId.slice(0, separator);
+    const scopeId = request.entityId.slice(separator + 1);
+    if (!((scopeType === "GLOBAL_SOFTWARE" && scopeId === "global") ||
+      (scopeType === "ECONOMIC_LAYER" && ["CEDARS CLOUD", "CEDARS UNDERGROUND", "CEDARS EARTH", "CEDARS HUMAN ACTIVITIES"].includes(scopeId)))) return null;
+    const config = await transaction.controlScopeConfig.findUnique({
+      where: { scopeType_scopeId: { scopeType, scopeId } }
+    });
+    return { enabled: config?.enabled ?? false, controlVersion: config?.controlVersion ?? -1 };
   }
   return null;
 }
@@ -194,10 +232,46 @@ async function applyProposedState(
   }
   if (request.entityType === "GRID_CONFIG" &&
       (proposed.desiredState === "STANDBY" || proposed.desiredState === "WORKING" || proposed.desiredState === "MAINTENANCE")) {
+    const catalogEntry = gridCatalog.find((item) => item.id === request.entityId);
+    if (!catalogEntry) throw new ApprovalWorkflowError(409, "Grid target is not in the canonical catalogue.");
+    const [globalControl, layerControl] = await Promise.all([
+      transaction.controlScopeConfig.findUnique({
+        where: { scopeType_scopeId: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global" } }
+      }),
+      transaction.controlScopeConfig.findUnique({
+        where: { scopeType_scopeId: { scopeType: "ECONOMIC_LAYER", scopeId: catalogEntry.layer } }
+      })
+    ]);
     await transaction.gridConfig.upsert({
       where: { id: request.entityId },
-      create: { id: request.entityId, desiredState: proposed.desiredState, updatedById: actorId },
-      update: { desiredState: proposed.desiredState, updatedById: actorId }
+      create: {
+        id: request.entityId,
+        desiredState: proposed.desiredState,
+        authorizedGlobalControlVersion: globalControl?.controlVersion ?? -1,
+        authorizedLayerControlVersion: layerControl?.controlVersion ?? -1,
+        updatedById: actorId
+      },
+      update: {
+        desiredState: proposed.desiredState,
+        authorizedGlobalControlVersion: globalControl?.controlVersion ?? -1,
+        authorizedLayerControlVersion: layerControl?.controlVersion ?? -1,
+        updatedById: actorId
+      }
+    });
+    return;
+  }
+  if (request.entityType === "CONTROL_SCOPE_CONFIG" && typeof proposed.enabled === "boolean") {
+    const separator = request.entityId.indexOf(":");
+    if (separator < 1) throw new ApprovalWorkflowError(409, "Invalid control scope target.");
+    const scopeType = request.entityId.slice(0, separator);
+    const scopeId = request.entityId.slice(separator + 1);
+    const validScope = (scopeType === "GLOBAL_SOFTWARE" && scopeId === "global") ||
+      (scopeType === "ECONOMIC_LAYER" && ["CEDARS CLOUD", "CEDARS UNDERGROUND", "CEDARS EARTH", "CEDARS HUMAN ACTIVITIES"].includes(scopeId));
+    if (!validScope) throw new ApprovalWorkflowError(409, "Control scope target is not in the canonical hierarchy.");
+    await transaction.controlScopeConfig.upsert({
+      where: { scopeType_scopeId: { scopeType, scopeId } },
+      create: { scopeType, scopeId, enabled: proposed.enabled, updatedById: actorId },
+      update: { enabled: proposed.enabled, controlVersion: { increment: 1 }, updatedById: actorId }
     });
     return;
   }
