@@ -44,14 +44,22 @@ async function invokeAdapter(name, adapter, objective, signal) {
   const timeoutController = new AbortController();
   const onAbort = () => timeoutController.abort(signal.reason);
   signal.addEventListener("abort", onAbort, { once: true });
-  const timeout = setTimeout(() => timeoutController.abort(new Error("Tool timeout")), DEFAULT_TIMEOUT_MS);
+  let timeout;
   try {
-    const value = await adapter({
+    const timeoutPromise = new Promise((_, reject) => {
+      timeout = setTimeout(() => {
+        const error = new Error("Tool timeout");
+        timeoutController.abort(error);
+        reject(error);
+      }, DEFAULT_TIMEOUT_MS);
+    });
+    const adapterPromise = Promise.resolve().then(() => adapter({
       objective,
       environment: "PREVIEW_ONLY",
       access: "READ_ONLY",
       signal: timeoutController.signal
-    });
+    }));
+    const value = await Promise.race([adapterPromise, timeoutPromise]);
     return {
       tool: name,
       status: "OBSERVED",
@@ -64,7 +72,7 @@ async function invokeAdapter(name, adapter, objective, signal) {
       evidence: redact({ error: error instanceof Error ? error.message : "Unknown adapter error" })
     };
   } finally {
-    clearTimeout(timeout);
+    if (timeout) clearTimeout(timeout);
     signal.removeEventListener("abort", onAbort);
   }
 }
