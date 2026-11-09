@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#07110d">
+<title>CEDARS NIGHTSHIFT AI | Income Operations</title>
+<style>
+:root{color-scheme:dark;--bg:#07110d;--panel:#0d1b14;--panel2:#102219;--line:#203b2b;--text:#edf5ee;--muted:#91a99a;--green:#55c783;--gold:#d9b45b;--red:#e17d70;--blue:#82b8d0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% -20%,#173b28 0,transparent 40%),var(--bg);color:var(--text);min-height:100vh}button{font:inherit}.shell{max-width:1440px;margin:auto;padding:26px 28px 48px}.top{display:flex;align-items:center;justify-content:space-between;gap:18px;border-bottom:1px solid var(--line);padding-bottom:22px}.brand{display:flex;align-items:center;gap:13px}.mark{width:42px;height:42px;border:1px solid var(--gold);border-radius:50%;display:grid;place-items:center;color:var(--green);font-size:22px;box-shadow:0 0 22px #55c78320}.brand h1{font-size:16px;letter-spacing:.12em;margin:0}.brand p{margin:4px 0 0;color:var(--muted);font-size:10px;letter-spacing:.18em}.topright{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.pill{border:1px solid var(--line);border-radius:999px;padding:7px 11px;font-size:10px;letter-spacing:.09em;color:var(--muted);white-space:nowrap}.pill.warn{border-color:#775f2b;color:#e5c979;background:#d9b45b12}.pill.off{border-color:#78423c;color:#ef9a8d;background:#e17d7010}.heading{display:flex;justify-content:space-between;align-items:end;gap:20px;margin:28px 0 18px}.eyebrow{color:var(--green);font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase}.heading h2{font-size:clamp(24px,3vw,36px);margin:8px 0 6px;letter-spacing:-.04em}.heading p{color:var(--muted);margin:0;max-width:680px;line-height:1.55;font-size:13px}.target{min-width:190px;text-align:right}.target strong{display:block;font-size:32px;color:var(--gold);letter-spacing:-.04em}.target span{font-size:10px;color:var(--muted);letter-spacing:.13em;text-transform:uppercase}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.card{background:linear-gradient(145deg,#102117,#0b1711);border:1px solid var(--line);border-radius:15px;padding:17px;min-width:0}.metric-label{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.13em}.metric-value{font-size:27px;font-weight:750;letter-spacing:-.04em;margin:13px 0 7px}.metric-note{font-size:11px;color:var(--muted);line-height:1.4}.metric-value.pending{font-size:18px;color:#e5c979;letter-spacing:0}.layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.85fr);gap:14px;margin-top:14px}.section{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:18px;min-width:0}.section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:15px}.section h3{font-size:13px;margin:0;letter-spacing:.02em}.sub{font-size:10px;color:var(--muted)}.workers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.worker{display:flex;align-items:center;gap:11px;padding:12px;background:#09150e;border:1px solid #1d3627;border-radius:11px}.worker-icon{width:34px;height:34px;border-radius:10px;background:#183323;color:var(--green);display:grid;place-items:center;font-size:15px}.worker b{display:block;font-size:11px}.worker small{display:block;color:var(--muted);font-size:10px;margin-top:4px}.state{margin-left:auto;font-size:9px;border:1px solid #70453e;color:#e9a097;padding:5px 7px;border-radius:99px;white-space:nowrap}.pipeline{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.stage{padding:12px 10px;background:#09150e;border:1px solid #1d3627;border-radius:10px}.stage strong{display:block;font-size:20px;color:#e9f3eb}.stage span{display:block;color:var(--muted);font-size:9px;line-height:1.4;margin-top:5px}.empty{border:1px dashed #31523b;border-radius:11px;padding:20px;text-align:center;color:var(--muted);font-size:11px;line-height:1.6}.empty b{display:block;color:var(--text);font-size:12px;margin-bottom:5px}.bottomgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.rows{display:grid;gap:9px}.rowitem{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #1c3325;padding:8px 0;font-size:11px}.rowitem span{color:var(--muted)}.gate{margin-top:14px;border:1px solid #6d5527;background:#d9b45b0c;border-radius:14px;padding:17px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center}.gate h3{margin:0 0 6px;font-size:13px;color:#e7cc83}.gate p{margin:0;color:#c5b98e;font-size:11px;line-height:1.6;max-width:850px}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid #31523b;background:#14291b;color:var(--text);padding:10px 13px;border-radius:9px;font-size:11px;font-weight:700;cursor:pointer}.btn:hover:not(:disabled){border-color:var(--green);background:#1a3825}.btn.primary{background:#245c3a;border-color:#397c50}.btn:disabled{opacity:.45;cursor:not-allowed}.diagnostics{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.diagresult{font-size:10px;color:var(--muted);line-height:1.5}.footer{margin-top:18px;border-top:1px solid var(--line);padding-top:15px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#789180;font-size:10px;line-height:1.6}.ok{color:var(--green)}.bad{color:var(--red)}@media(max-width:900px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.layout{grid-template-columns:1fr}.heading{align-items:start;flex-direction:column}.target{text-align:left}.gate{grid-template-columns:1fr}}@media(max-width:560px){.shell{padding:18px 14px 32px}.top{align-items:start;flex-direction:column}.metrics{grid-template-columns:1fr 1fr}.metric-value{font-size:21px}.workers,.bottomgrid{grid-template-columns:1fr}.pipeline{grid-template-columns:repeat(2,minmax(0,1fr))}.topright{gap:6px}.pill{font-size:9px}.brand h1{font-size:14px}}
+</style>
+</head>
+<body>
+<main class="shell">
+<header class="top">
+  <div class="brand"><div class="mark" aria-hidden="true">✦</div><div><h1>CEDARS NIGHTSHIFT AI™</h1><p>INCOME OPERATIONS · CLOUD CONTROL PLANE</p></div></div>
+  <div class="topright"><span class="pill">PREVIEW PROTOTYPE</span><span class="pill warn">WORKERS NOT CONNECTED</span><span class="pill off">FINANCIAL EXECUTION OFF</span></div>
+</header>
+<section class="heading">
+  <div><div class="eyebrow">Overnight productive operations</div><h2>Work continues. Evidence comes first.</h2><p>One control surface for customer opportunities, authorized AI work, delivery evidence, independently confirmed receipts and operating costs. The $100/day figure is a target—not a forecast or promise.</p></div>
+  <div class="target"><strong>$100.00</strong><span>Daily revenue target · USD</span></div>
+</section>
+<section class="metrics" aria-label="Daily financial metrics">
+  <article class="card"><div class="metric-label">Verified customer revenue</div><div class="metric-value pending">NOT CONNECTED</div><div class="metric-note">No reconciled receipt source is available yet.</div></article>
+  <article class="card"><div class="metric-label">Verified operating costs</div><div class="metric-value pending">NOT CONNECTED</div><div class="metric-note">Provider and infrastructure cost records are not connected.</div></article>
+  <article class="card"><div class="metric-label">Net operating result</div><div class="metric-value pending">NOT AVAILABLE</div><div class="metric-note">Calculated only after revenue and costs are reconciled.</div></article>
+  <article class="card"><div class="metric-label">Target attainment</div><div class="metric-value pending">NOT MEASURABLE</div><div class="metric-note">No verified daily revenue data; no progress is assumed.</div></article>
+</section>
+<div class="layout">
+  <section class="section">
+    <div class="section-head"><h3>AI worker roster</h3><span class="pill off">EXECUTION DISABLED</span></div>
+    <div class="workers">
+      <div class="worker"><div class="worker-icon">⌕</div><div><b>Opportunity Research</b><small>Finds real buyers and scoped work</small></div><span class="state">NOT CONNECTED</span></div>
+      <div class="worker"><div class="worker-icon">↗</div><div><b>Sales & Proposals</b><small>Drafts offers for human approval</small></div><span class="state">NOT CONNECTED</span></div>
+      <div class="worker"><div class="worker-icon">⚙</div><div><b>Work Production</b><small>Performs approved digital deliverables</small></div><span class="state">NOT CONNECTED</span></div>
+      <div class="worker"><div class="worker-icon">✓</div><div><b>Quality & Delivery</b><small>Checks acceptance criteria and provenance</small></div><span class="state">NOT CONNECTED</span></div>
+      <div class="worker"><div class="worker-icon">$</div><div><b>Revenue Reconciliation</b><small>Matches external receipt evidence</small></div><span class="state">NOT CONNECTED</span></div>
+      <div class="worker"><div class="worker-icon">◎</div><div><b>Cost & Audit Monitor</b><small>Tracks usage, costs and exceptions</small></div><span class="state">NOT CONNECTED</span></div>
+    </div>
+    <div class="gate"><div><h3>Execution gate is CLOSED</h3><p>Workers cannot be started from this prototype. Durable cloud execution, authenticated operator roles, a connected Preview database, tested job isolation, budget limits, audit events and an emergency stop must pass independent checks first.</p></div><div class="actions"><button class="btn primary" disabled title="Blocked until runtime and approval gates pass">Start overnight operations</button></div></div>
+  </section>
+  <section class="section">
+    <div class="section-head"><h3>Customer work pipeline</h3><span class="sub">Evidence-backed stages only</span></div>
+    <div class="pipeline">
+      <div class="stage"><strong>—</strong><span>Qualified opportunities</span></div>
+      <div class="stage"><strong>—</strong><span>Approved customer scopes</span></div>
+      <div class="stage"><strong>—</strong><span>Accepted deliveries</span></div>
+      <div class="stage"><strong>—</strong><span>Reconciled receipts</span></div>
+    </div>
+    <div class="empty" style="margin-top:12px"><b>No connected customer-work records</b>Opportunity, contract, delivery and acceptance counts will appear only when backed by authenticated records. No sample customers or simulated earnings are shown.</div>
+    <div class="section-head" style="margin-top:18px"><h3>Overnight activity</h3><span class="sub">Append-only audit feed · planned</span></div>
+    <div class="empty"><b>No worker execution events</b>Execution is not connected. This page does not pretend that AI workers are operating in the background.</div>
+  </section>
+</div>
+<div class="bottomgrid">
+  <section class="section">
+    <div class="section-head"><h3>Revenue evidence</h3><span class="pill warn">RECORD-ONLY DESIGN</span></div>
+    <div class="rows">
+      <div class="rowitem"><span>Recognition basis</span><b>Customer payment independently verified</b></div>
+      <div class="rowitem"><span>Required evidence</span><b>Customer, invoice, receipt reference, reconciliation</b></div>
+      <div class="rowitem"><span>Refunds / disputes</span><b>Must reduce or reverse recognized revenue</b></div>
+      <div class="rowitem"><span>Internal transfers / grants</span><b>Excluded from customer revenue</b></div>
+    </div>
+    <p class="sub" style="line-height:1.6;margin:12px 0 0">The platform may record externally evidenced business outcomes after approval; it must not initiate, receive, hold, route or settle fiat funds. No payment rail or wallet is connected.</p>
+  </section>
+  <section class="section">
+    <div class="section-head"><h3>Cost and margin controls</h3><span class="pill">BUDGET GATES PLANNED</span></div>
+    <div class="rows">
+      <div class="rowitem"><span>AI model usage</span><b>Not connected</b></div>
+      <div class="rowitem"><span>Cloud compute / storage</span><b>Not connected</b></div>
+      <div class="rowitem"><span>External tools / subscriptions</span><b>Not connected</b></div>
+      <div class="rowitem"><span>Net margin</span><b>Not measurable</b></div>
+    </div>
+    <p class="sub" style="line-height:1.6;margin:12px 0 0">Workers must stop or request approval when a per-job, daily or monthly spend cap is reached. No paid service should be enabled by this prototype.</p>
+  </section>
+</div>
+<section class="section" style="margin-top:14px">
+  <div class="section-head"><h3>Platform verification</h3><span class="sub">Live read-only diagnostics · no configuration changes</span></div>
+  <div class="diagnostics"><button class="btn" id="checkButton">Check API health & readiness</button><button class="btn" id="exportButton">Export evidence checklist</button><span class="diagresult" id="diagResult" aria-live="polite">Not checked yet. Diagnostics make read-only GET requests only.</span></div>
+</section>
+<footer class="footer"><span>CEDARS OS™ · NIGHTSHIFT AI · PROTOTYPE 001<br>Production FROZEN · Public launch OFF · Financial execution OFF</span><span>Governance: fail closed · Human approval required<br>NO FIAT TRANSACTIONS · No guaranteed income</span></footer>
+</main>
+<script>
+const result=document.getElementById("diagResult");
+const check=document.getElementById("checkButton");
+check.addEventListener("click",async()=>{
+  check.disabled=true;result.textContent="Checking /api/health and /api/ready…";
+  const checks=[];
+  for(const path of ["/api/health","/api/ready"]){
+    try{const response=await fetch(path,{method:"GET",cache:"no-store",credentials:"same-origin",headers:{Accept:"application/json"}});
+      const body=await response.json().catch(()=>null);
+      checks.push({path,status:response.status,ok:response.ok,body});
+    }catch(error){checks.push({path,error:String(error)});}
+  }
+  result.textContent=checks.map(item=>item.path+": "+(item.status?"HTTP "+item.status+(item.ok?" · reachable":" · not ready"):"unreachable")).join(" | ");
+  result.title=JSON.stringify(checks,null,2);check.disabled=false;
+});
+document.getElementById("exportButton").addEventListener("click",()=>{
+  const checklist={artifact:"CEDARS NIGHTSHIFT AI prototype evidence checklist",version:1,generatedAt:new Date().toISOString(),status:"DESIGN_ONLY_NOT_OPERATIONAL",dailyTargetUsd:100,production:"FROZEN",publicLaunch:"OFF",financialExecution:"OFF",fiatTransactions:"PROHIBITED",requiredEvidence:["Authenticated operator identity and role","Preview database connection and reviewed migrations","Durable job queue and isolated worker runtime","Customer scope and acceptance criteria","Human approval for customer commitments and external actions","Delivery provenance and customer acceptance","External receipt evidence and independent reconciliation","Provider and infrastructure cost records","Refund/dispute handling and idempotency","Per-job and daily budget caps","Append-only audit log and emergency stop"],prohibited:["AI-initiated fiat transactions","Deposits, withdrawals, payouts or transfers","Wallet signing or custody","Speculative trading","Unverified or simulated revenue claims","Autonomous public launch or production activation"]};
+  const blob=new Blob([JSON.stringify(checklist,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="cedars-nightshift-evidence-checklist.json";a.click();URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
