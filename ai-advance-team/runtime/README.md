@@ -1,73 +1,62 @@
 # CEDARS OS™ AI Advance Team — Isolated Runtime
 
-**Runtime stage:** isolated read-only orchestration foundation.  
+**Runtime stage:** model-backed Eve agent runtime implemented; connector integration and Preview deployment remain gated.  
 **Environment intent:** Preview only.  
-**Model-connected autonomous reasoning:** not configured.  
-**External connectors:** not configured by default.
+**Agent roles:** one Commander plus five delegated specialist agents.  
+**Model route:** Vercel AI Gateway (openai/gpt-6-luna-fast); provider access must be configured in the isolated runtime project.
 
-This package is separate from the CEDARS API and dashboard. It uses Node.js built-ins only and does not add dependencies to the root application.
+This package is isolated from the CEDARS API and dashboard. It has its own dependencies, agent instructions, channel authentication, role limits, and CI workflow. It does not add dependencies to the root application.
 
-## What is implemented
+## Implemented runtime
 
-- Six role definitions matching the AI Advance Team charter.
-- Bounded objective validation.
-- Explicit allowlist of four read-only adapter interfaces:
-  - `repository.read`
-  - `ci.read`
-  - `preview.read`
-  - `previewDatabase.readMetadata`
-- Per-role tool allowlists.
-- Bounded parallel execution (maximum three roles at a time).
-- Per-tool timeout and cancellation propagation.
-- Secret-like value redaction and bounded observation size.
-- Structured run report with role outcomes and governance boundaries.
-- Tests for role registration, allowlists, boundary invariants, missing connectors, redaction, and fail-closed reporting.
+- Eve durable agent runtime with a coordinating Commander.
+- Five independently prompted specialist subagents: Security & Compliance, Repository & CI, Runtime & Database, Independent QA, and Release Governance.
+- Model-backed reasoning through the Vercel AI Gateway.
+- Per-session input/output/cost budgets and session timeouts for the Commander and every specialist.
+- Built-in agent-copy/tool capability disabled for every role; no custom tools, external connections, schedules, or sandbox extensions are mounted.
+- Authenticated HTTP channel using Vercel OIDC and local development authentication.
+- Explicit Production boot guard: the runtime refuses to start when VERCEL_ENV=production.
+- Isolated Node.js package and dedicated GitHub Actions workflow for tests and Eve compilation.
+- Existing deterministic orchestration harness retained for fail-closed adapter and governance-boundary tests.
 
-## Run locally
+## What the agents can and cannot do today
 
-From this directory:
+The agents can reason over evidence explicitly supplied in their task/session and delegate analysis to the five specialists. They cannot independently fetch GitHub, Vercel, Supabase, or other external evidence because no connector tools or credentials are installed.
 
-```sh
-npm test
-npm run self-check
-node src/cli.mjs "Inspect the Preview readiness evidence"
-```
+No evidence source is treated as inspected merely because the model is asked to inspect it. Missing external connectors must remain BLOCKED/UNPROVEN; the model must not invent source paths, deployment IDs, workflow runs, timestamps, or test outcomes.
 
-The self-check intentionally supplies no external adapters. Specialist roles therefore report **BLOCKED** rather than fabricating evidence.
+## Run and verify locally
 
-## Adapter contract
+Requires Node.js 24 or newer:
 
-A host may inject only explicitly allowlisted read-only functions. Each receives:
+    npm install
+    npm test
+    npm run self-check
+    npm run build
+    npm run dev
 
-```js
-{
-  objective,
-  environment: "PREVIEW_ONLY",
-  access: "READ_ONLY",
-  signal
-}
-```
+The self-check exercises the deterministic read-only orchestration harness with no external adapters. It does not prove model connectivity. A successful Eve build proves that the agent definitions compile; a real model turn additionally requires valid AI Gateway access.
 
-The runtime does not itself provide GitHub, Vercel, or Supabase credentials or network clients. Connector implementation and connector-level least-privilege scopes must be reviewed separately before any adapter is enabled. Prompt text is not a security boundary.
+## Connector contract and next gates
 
-## Security and governance limits
+Any future data connector must be implemented as an individually reviewed Eve tool or connection, backed by a separately scoped read-only credential and explicit Preview-only target validation. The first planned connectors are repository/CI read, Vercel Preview read, and Preview database metadata read. No write-capable tool is permitted in this runtime.
 
-- No repository writes, commits, PR merges, settings changes, or deployments.
-- No database writes, schema changes, migrations, or seeds.
-- No Production access.
-- No customer contact or external communications.
-- No payments, payouts, transfers, token issuance, or fiat transactions.
-- Public launch and financial execution remain OFF.
-- The runtime cannot mark evidence VERIFIED or ACCEPTED and cannot promote capability status.
-- Adapter outputs are untrusted observations; they are not independently verified evidence.
-- No model provider, API key, persistent session store, durable queue, or user-facing endpoint is configured.
+Before calling the team operationally connected:
+1. Configure AI Gateway credentials directly in the isolated Preview project; never paste secrets into chat or source control.
+2. Add read-only GitHub and Vercel connectors with least-privilege scopes and Preview-only resource checks.
+3. Add a Supabase Preview metadata connector only after confirming it cannot reach Production and cannot execute writes.
+4. Add independent prompt-injection, secret-exfiltration, environment-confusion, unsafe-tool-use, and evidence-fabrication evaluations.
+5. Add a durable audit/retention design and confirm access controls for sessions and traces.
+6. Deploy only to a separate Preview runtime project and verify health, authenticated session creation, a model turn, subagent delegation, cancellation, budget enforcement, and Production refusal.
 
-## Next implementation gates
+## Non-negotiable CEDARS boundaries
 
-1. Review and approve connector adapters individually, with read-only credentials and Preview-only scopes.
-2. Add independently tested model-backed reasoning through the approved AI Gateway path, after version-matched SDK documentation and model selection are verified.
-3. Add durable session/audit persistence with retention and access controls.
-4. Add prompt-injection, secret-exfiltration, environment-confusion, tool-abuse, and evidence-fabrication evaluations.
-5. Deploy only to the isolated Preview runtime after CI and deployment checks pass.
+- Production FROZEN; public launch OFF; financial execution OFF.
+- NO FIAT TRANSACTIONS inside CEDARS OS.
+- Treasury remains a non-transactional evidence, authorization, receipt-metadata, and reconciliation control.
+- No repository writes, database writes, migrations, deployments, promotions, settings changes, or external communications.
+- No Production data or Production runtime access.
+- No payments, payouts, transfers, token issuance, or other financial execution.
+- The runtime cannot mark findings VERIFIED or ACCEPTED or promote capability status. VERIFIED requires current independent evidence; ACCEPTED requires a separate authorized human approval record.
 
-This package is an executable orchestration foundation, **not yet six autonomous AI agents** and not a production service.
+**Status:** executable AI-agent definitions are present in source. Live model connectivity, external evidence retrieval, durable audit acceptance, and Preview runtime deployment are NOT YET VERIFIED.
