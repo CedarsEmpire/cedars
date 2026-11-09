@@ -30,3 +30,9 @@ The merged GULUDEK baseline contains one HTML dashboard, a read-only Python Wind
 - Test Polygon read-only wallet integration before enabling any signing.
 - Verify earnings evidence and 24-hour withdrawal enforcement before any withdrawal capability.
 - Keep CEDARS OS production, databases and release state untouched.
+
+## Progress update
+- Added a read-only injected-wallet panel to the one-page dashboard: connect an owner-controlled browser wallet, check Polygon chain ID 137, read native POL balance and native USDC token balance.
+- Wallet panel does not request signing, token approvals, transfers, or withdrawals. It never asks for seed phrases/private keys.
+- The native USDC contract address is currently configured in the client; verify it against current official Polygon/Circle documentation before treating the displayed USDC balance as release-verified.
+- No CI workflow run was returned for the wallet UI commit. Browser-wallet testing and Windows runtime testing remain outstanding.
