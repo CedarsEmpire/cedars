@@ -21,6 +21,16 @@ type FeatureFlagRecord = {
   updatedAt: Date;
 };
 
+type ControlScopeConfigRecord = {
+  id: string;
+  scopeType: string;
+  scopeId: string;
+  enabled: boolean;
+  updatedById: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 type AuditLogRecord = {
   id: string;
   actorId: string;
@@ -118,6 +128,7 @@ function createInMemoryPrisma() {
   const users = new Map<string, UserRecord>();
   const usersById = new Map<string, UserRecord>();
   const featureFlags = new Map<string, FeatureFlagRecord>();
+  const controlScopeConfigs = new Map<string, ControlScopeConfigRecord>();
   const workerConfigs = new Map<string, WorkerConfigRecord>();
   const gridConfigs = new Map<string, GridConfigRecord>();
   const gridTasks = new Map<string, GridTaskRecord>();
@@ -166,6 +177,12 @@ function createInMemoryPrisma() {
   });
 
   const normalizeFlag = (record: FeatureFlagRecord) => ({
+    ...record,
+    createdAt: new Date(record.createdAt),
+    updatedAt: new Date(record.updatedAt)
+  });
+
+  const normalizeControlScopeConfig = (record: ControlScopeConfigRecord) => ({
     ...record,
     createdAt: new Date(record.createdAt),
     updatedAt: new Date(record.updatedAt)
@@ -337,6 +354,41 @@ function createInMemoryPrisma() {
       };
       featureFlags.set(created.moduleName, created);
       return normalizeFlag(created);
+    }
+  };
+
+  const controlScopeConfigStore = {
+    findMany: async ({ where }: { where?: { scopeType?: string; scopeId?: string } } = {}) => {
+      return [...controlScopeConfigs.values()]
+        .filter((record) => (!where?.scopeType || record.scopeType === where.scopeType) &&
+          (!where?.scopeId || record.scopeId === where.scopeId))
+        .map(normalizeControlScopeConfig);
+    },
+    findUnique: async ({ where }: { where: { scopeType_scopeId: { scopeType: string; scopeId: string } } }) => {
+      const key = `${where.scopeType_scopeId.scopeType}:${where.scopeType_scopeId.scopeId}`;
+      const record = controlScopeConfigs.get(key);
+      return record ? normalizeControlScopeConfig(record) : null;
+    },
+    upsert: async ({ where, create, update }: {
+      where: { scopeType_scopeId: { scopeType: string; scopeId: string } };
+      create: { scopeType: string; scopeId: string; enabled: boolean; updatedById?: string | null };
+      update: Partial<{ enabled: boolean; updatedById: string | null }>;
+    }) => {
+      const key = `${where.scopeType_scopeId.scopeType}:${where.scopeType_scopeId.scopeId}`;
+      const current = controlScopeConfigs.get(key);
+      const record: ControlScopeConfigRecord = current
+        ? { ...current, enabled: update.enabled ?? current.enabled, updatedById: update.updatedById ?? current.updatedById, updatedAt: new Date() }
+        : {
+            id: randomUUID(),
+            scopeType: create.scopeType,
+            scopeId: create.scopeId,
+            enabled: create.enabled,
+            updatedById: create.updatedById ?? null,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+      controlScopeConfigs.set(key, record);
+      return normalizeControlScopeConfig(record);
     }
   };
 
@@ -645,6 +697,7 @@ function createInMemoryPrisma() {
   type MemoryTransaction = {
     user: typeof userStore;
     featureFlag: typeof featureFlagStore;
+    controlScopeConfig: typeof controlScopeConfigStore;
     workerConfig: typeof workerConfigStore;
     gridConfig: typeof gridConfigStore;
     gridTask: typeof gridTaskStore;
@@ -658,6 +711,7 @@ function createInMemoryPrisma() {
   const transaction: MemoryTransaction = {
     user: userStore,
     featureFlag: featureFlagStore,
+    controlScopeConfig: controlScopeConfigStore,
     workerConfig: workerConfigStore,
     gridConfig: gridConfigStore,
     gridTask: gridTaskStore,
@@ -671,6 +725,7 @@ function createInMemoryPrisma() {
   return {
     user: userStore,
     featureFlag: featureFlagStore,
+    controlScopeConfig: controlScopeConfigStore,
     workerConfig: workerConfigStore,
     gridConfig: gridConfigStore,
     gridTask: gridTaskStore,
