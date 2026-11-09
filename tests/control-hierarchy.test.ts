@@ -176,4 +176,55 @@ describe("M6 global and economic-layer control hierarchy", () => {
     const modules = await listModules();
     expect(modules.every((module) => module.effectiveEnabled === false || module.enabled === false)).toBe(true);
   });
+
+  it("requires fresh Grid approval after a parent control changes", async () => {
+    const { prisma } = await import("../src/db.js");
+    const { evaluateGridControl } = await import("../src/features/control-hierarchy.js");
+    const { updateGrid } = await import("../src/features/grids.js");
+    const { decideApproval } = await import("../src/features/approvals.js");
+
+    await prisma.gridConfig.upsert({
+      where: { id: "solar" },
+      create: { id: "solar", desiredState: "WORKING" },
+      update: { desiredState: "WORKING" }
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await prisma.controlScopeConfig.upsert({
+      where: { scopeType_scopeId: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global" } },
+      create: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global", enabled: true },
+      update: { enabled: true }
+    });
+    await prisma.controlScopeConfig.upsert({
+      where: { scopeType_scopeId: { scopeType: "ECONOMIC_LAYER", scopeId: "CEDARS EARTH" } },
+      create: { scopeType: "ECONOMIC_LAYER", scopeId: "CEDARS EARTH", enabled: true },
+      update: { enabled: true }
+    });
+
+    const prior = await prisma.gridConfig.findUnique({ where: { id: "solar" } });
+    await expect(evaluateGridControl("solar", "WORKING", prior?.updatedAt)).resolves.toMatchObject({
+      effectiveState: "BLOCKED",
+      blockReason: "PARENT_AUTHORIZATION_CHANGED"
+    });
+
+    const proposal = await updateGrid({
+      actorSubject: "grid-reauthorization-requester",
+      actorRole: Role.FOUNDER,
+      gridId: "solar",
+      desiredState: "WORKING",
+      reason: "Reauthorize after parent control change"
+    });
+    expect(proposal).toMatchObject({ approvalRequired: true });
+    await decideApproval({
+      actorSubject: "grid-reauthorization-reviewer",
+      actorRole: Role.SUPER_ADMIN,
+      requestId: proposal.approval.id,
+      decision: "APPROVE",
+      reason: "Independent Grid reauthorization"
+    });
+    const renewed = await prisma.gridConfig.findUnique({ where: { id: "solar" } });
+    await expect(evaluateGridControl("solar", "WORKING", renewed?.updatedAt)).resolves.toMatchObject({
+      effectiveState: "ELIGIBLE",
+      blockReason: null
+    });
+  });
 });
