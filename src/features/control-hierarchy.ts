@@ -108,6 +108,7 @@ export async function updateControlScope(input: {
     where: { scopeType_scopeId: { scopeType: input.scopeType, scopeId: input.scopeId } }
   });
   const currentEnabled = current?.enabled ?? false;
+  if (current && input.enabled === currentEnabled) return { ...current, unchanged: true };
 
   if (input.enabled && !currentEnabled) {
     const approval = await requestControlApproval({
