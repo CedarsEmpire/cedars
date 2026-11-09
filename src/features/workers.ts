@@ -35,6 +35,7 @@ export async function listWorkers() {
     return {
       ...worker,
       enabled,
+      desiredEnabled: enabled,
       desiredInstances: config?.desiredInstances ?? 1,
       configured: Boolean(config),
       effectiveState: "BLOCKED" as "BLOCKED" | "ELIGIBLE",
