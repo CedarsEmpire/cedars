@@ -10,14 +10,14 @@ if (-not (Test-Path $Agent) -or -not (Test-Path $Page)) {
 $Python = Get-Command py -ErrorAction SilentlyContinue
 if ($Python) {
     $Exe = $Python.Source
-    $Args = @("-3", $Agent)
+    $Args = @("-3", ('"' + $Agent + '"'))
 } else {
     $Python = Get-Command python -ErrorAction SilentlyContinue
     if (-not $Python) {
         throw "Python 3 is required. Install Python 3 from python.org, then run this script again."
     }
     $Exe = $Python.Source
-    $Args = @($Agent)
+    $Args = @('"' + $Agent + '"')
 }
 
 Write-Host ""
