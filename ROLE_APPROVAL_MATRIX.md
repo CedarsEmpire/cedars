@@ -195,3 +195,21 @@ Only after all required sign-offs are complete may the public launch switch be t
 
 ## Final rule
 The pilot is built to generate evidence. The public launch is not a default next step; it is a gated decision secured by role-based approvals and operational proof.
+
+
+---
+
+## M6-01 / M6-02 — Global and economic-layer control hierarchy
+
+This supplement governs the Preview implementation of the global software control and the four canonical economic-layer controls.
+
+- Global software control and each economic-layer ON transition require independent approval: Founder requests require Super Admin approval; Super Admin requests require Founder approval.
+- Global OFF and layer OFF are immediate, audited restrictions.
+- Parent OFF overrides every descendant Grid, module and worker state. Child requested state is not proof of effective permission.
+- A Grid may become eligible only when global and its assigned layer are enabled, its desired state is WORKING, and its stored authorization generations match the current parent-control generations.
+- Any parent-control transition invalidates previously recorded Grid authorization generations. A Grid must receive a fresh independent approval before it becomes eligible again.
+- Modules and workers without verified canonical Grid assignments remain BLOCKED even if their desired configuration is enabled. No mapping is inferred from a similarly named module or worker.
+- Requested, effective, observed and verification states are reported separately. Simulator observations are not live runtime evidence; all new control views report verification as UNVERIFIED until independent evidence exists.
+- The global and layer controls do not authorize AI job dispatch, autonomous scaling, robotics, physical actions, payments, settlement, fiat transactions, production activation or public launch.
+
+**Current release posture remains:** Production FROZEN; Financial execution OFF; Public launch OFF; NO FIAT TRANSACTIONS.
