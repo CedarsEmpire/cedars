@@ -37,7 +37,7 @@ export async function listWorkers() {
       enabled,
       desiredInstances: config?.desiredInstances ?? 1,
       configured: Boolean(config),
-      effectiveState: "BLOCKED" as const,
+      effectiveState: "BLOCKED" as "BLOCKED" | "ELIGIBLE",
       blockReason: !globalEnabled ? "GLOBAL_SOFTWARE_OFF" : "WORKER_GRID_ASSIGNMENT_UNVERIFIED",
       observedState: runtimeMode === "SIMULATOR" ? enabled ? "SIMULATED_RUNNING" : "SIMULATED_STOPPED" : "NOT_CONNECTED",
       verificationState: "UNVERIFIED",
