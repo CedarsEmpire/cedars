@@ -149,4 +149,31 @@ describe("M6 global and economic-layer control hierarchy", () => {
       reason: "Request an unknown economic layer"
     })).rejects.toThrow("Control scope is not in the supported hierarchy.");
   });
+
+  it("exposes requested and effective states separately across Grid, worker, and module views", async () => {
+    const { prisma } = await import("../src/db.js");
+    const { listGrids } = await import("../src/features/grids.js");
+    const { listWorkers } = await import("../src/features/workers.js");
+    const { listModules } = await import("../src/features/modules.js");
+
+    const grids = await listGrids();
+    expect(grids).toHaveLength(53);
+    expect(grids.every((grid) => grid.effectiveState === "BLOCKED")).toBe(true);
+
+    const workers = await listWorkers();
+    expect(workers.every((worker) => worker.effectiveState === "BLOCKED")).toBe(true);
+    expect(workers.every((worker) => worker.blockReason === "GLOBAL_SOFTWARE_OFF")).toBe(true);
+
+    await prisma.controlScopeConfig.upsert({
+      where: { scopeType_scopeId: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global" } },
+      create: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global", enabled: true },
+      update: { enabled: true }
+    });
+    const workersWithGlobalOn = await listWorkers();
+    expect(workersWithGlobalOn.every((worker) => worker.effectiveState === "BLOCKED")).toBe(true);
+    expect(workersWithGlobalOn.every((worker) => worker.blockReason === "WORKER_GRID_ASSIGNMENT_UNVERIFIED")).toBe(true);
+
+    const modules = await listModules();
+    expect(modules.every((module) => module.effectiveEnabled === false || module.enabled === false)).toBe(true);
+  });
 });
