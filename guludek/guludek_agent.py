@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ctypes
+import ctypes.wintypes
 import hmac
 import json
 import os
