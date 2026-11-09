@@ -42,9 +42,9 @@ export async function listModules() {
   ]);
   return flags.map((flag) => ({
     ...flag,
-    effectiveEnabled: flag.enabled && globalEnabled,
-    effectiveState: flag.enabled && globalEnabled ? "ELIGIBLE" : "BLOCKED",
-    blockReason: !globalEnabled ? "GLOBAL_SOFTWARE_OFF" : flag.enabled ? null : "MODULE_DISABLED"
+    effectiveEnabled: false,
+    effectiveState: "BLOCKED",
+    blockReason: !globalEnabled ? "GLOBAL_SOFTWARE_OFF" : flag.enabled ? "MODULE_GRID_ASSIGNMENT_UNVERIFIED" : "MODULE_DISABLED"
   }));
 }
 
