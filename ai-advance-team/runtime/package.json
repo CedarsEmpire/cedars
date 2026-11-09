@@ -1,0 +1,14 @@
+{
+  "name": "@cedars/ai-advance-team-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated, read-only orchestration runtime for the CEDARS AI Advance Team",
+  "scripts": {
+    "test": "node --test",
+    "self-check": "node src/cli.mjs --self-check"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
