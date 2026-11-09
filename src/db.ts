@@ -164,6 +164,8 @@ function createInMemoryPrisma() {
     gridConfigs.set(grid.id, {
       id: grid.id,
       desiredState: "STANDBY",
+      authorizedGlobalControlVersion: null,
+      authorizedLayerControlVersion: null,
       updatedById: null,
       createdAt: new Date(),
       updatedAt: new Date()
