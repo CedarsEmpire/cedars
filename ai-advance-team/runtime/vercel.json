@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "framework": "eve",
+  "installCommand": "npm install --no-audit --no-fund",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".vercel/output"
+}
