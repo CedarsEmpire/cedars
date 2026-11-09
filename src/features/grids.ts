@@ -60,7 +60,7 @@ export async function updateGrid(input: {
   if (!grid) throw new Error("Grid is not in the supported catalog.");
   const runtimeMode = getRuntimeMode();
   const current = await prisma.gridConfig.findUnique({ where: { id: input.gridId } });
-  const currentState = current?.desiredState ?? "STANDBY";
+  const currentState = (current?.desiredState ?? "STANDBY") as GridDesiredState;
   const currentControl = await evaluateGridControl(input.gridId, currentState, { globalVersion: current?.authorizedGlobalControlVersion ?? null, layerVersion: current?.authorizedLayerControlVersion ?? null });
   if (input.desiredState === "WORKING" &&
       (currentState !== "WORKING" || (currentControl.blockReason === "PARENT_AUTHORIZATION_CHANGED" || currentControl.blockReason === "PARENT_AUTHORIZATION_REQUIRED"))) {
