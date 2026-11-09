@@ -40,13 +40,18 @@ jobs:
           DATABASE_URL: ${{ secrets.CEDARS_PREVIEW_DATABASE_URL }}
         run: |
           node --input-type=module <<'NODE'
-          const raw = process.env.DATABASE_URL;
-          if (!raw) throw new Error('Required environment secret CEDARS_PREVIEW_DATABASE_URL is missing.');
+          // GitHub environment secrets can contain accidental surrounding whitespace.
+          // Trim only that whitespace; do not rewrite credentials or weaken target checks.
+          const raw = process.env.DATABASE_URL?.trim();
+          if (!raw) throw new Error('Required environment secret CEDARS_PREVIEW_DATABASE_URL is missing or blank.');
           let url;
           try {
             url = new URL(raw);
           } catch {
-            throw new Error('Refusing to connect: CEDARS_PREVIEW_DATABASE_URL is not a valid database URL.');
+            throw new Error('Refusing to connect: CEDARS_PREVIEW_DATABASE_URL must be a complete PostgreSQL URI (postgresql:// or postgres://). Check the secret format privately; its value is never logged.');
+          }
+          if (url.protocol !== 'postgresql:' && url.protocol !== 'postgres:') {
+            throw new Error('Refusing to connect: database URL must use the PostgreSQL protocol.');
           }
           const expectedHost = 'aws-0-us-east-1.pooler.supabase.com';
           const expectedUser = 'postgres.ncpftcmkiqkgfqeguyuc';
