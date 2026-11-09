@@ -44,7 +44,9 @@ export async function listModules() {
     ...flag,
     effectiveEnabled: false,
     effectiveState: "BLOCKED",
-    blockReason: !globalEnabled ? "GLOBAL_SOFTWARE_OFF" : flag.enabled ? "MODULE_GRID_ASSIGNMENT_UNVERIFIED" : "MODULE_DISABLED"
+    blockReason: !globalEnabled ? "GLOBAL_SOFTWARE_OFF" : flag.enabled ? "MODULE_GRID_ASSIGNMENT_UNVERIFIED" : "MODULE_DISABLED",
+    observedState: "NOT_CONNECTED",
+    verificationState: "UNVERIFIED"
   }));
 }
 
