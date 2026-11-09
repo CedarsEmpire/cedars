@@ -151,6 +151,20 @@ jobs:
             const indexNames = indexes.map(row => row.indexname);
             const requiredIndexes = ['approval_requests_one_pending_per_target_key'];
             const missingIndexes = requiredIndexes.filter(name => !indexNames.includes(name));
+            const controlTableSecurity = await prisma.$queryRaw`
+              SELECT c.relrowsecurity AS rls_enabled
+              FROM pg_class c
+              JOIN pg_namespace n ON n.oid = c.relnamespace
+              WHERE n.nspname = 'public' AND c.relname = 'control_scope_configs'
+            `;
+            const publicRoleGrants = await prisma.$queryRaw`
+              SELECT grantee, privilege_type
+              FROM information_schema.role_table_grants
+              WHERE table_schema = 'public' AND table_name = 'control_scope_configs'
+                AND grantee IN ('anon', 'authenticated')
+            `;
+            const controlScopeRlsEnabled = controlTableSecurity[0]?.rls_enabled === true;
+            const publicRolesHaveNoControlScopePrivileges = publicRoleGrants.length === 0;
             const missingMigrations = expectedMigrations.filter(name => !applied.includes(name));
             const unexpectedApplied = applied.filter(name => !expectedMigrations.includes(name));
             const missingTables = expectedTables.filter(name => !tableNames.includes(name));
@@ -159,6 +173,7 @@ jobs:
               result: missingMigrations.length === 0 && unexpectedApplied.length === 0 &&
                 pendingOrFailed.length === 0 && missingTables.length === 0 &&
                 missingColumns.length === 0 && missingIndexes.length === 0 &&
+                controlScopeRlsEnabled && publicRolesHaveNoControlScopePrivileges &&
                 applied.length === expectedMigrations.length ? 'PASS' : 'FAIL',
               expectedMigrationCount: expectedMigrations.length,
               appliedMigrations: applied,
@@ -170,6 +185,8 @@ jobs:
               missingRequiredColumns: missingColumns,
               requiredIndexes,
               missingRequiredIndexes: missingIndexes,
+              controlScopeRlsEnabled,
+              publicRolesHaveNoControlScopePrivileges,
               observedPublicTables: tableNames
             };
             writeFileSync('preview-db-verification.json', JSON.stringify(evidence, null, 2) + '\n');
