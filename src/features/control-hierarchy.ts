@@ -64,6 +64,7 @@ export async function listControlScopes() {
     return {
       ...scope,
       enabled: record?.enabled ?? false,
+      desiredEnabled: record?.enabled ?? false,
       configured: Boolean(record),
       effectiveEnabled: scope.scopeType === "GLOBAL_SOFTWARE"
         ? (record?.enabled ?? false)
