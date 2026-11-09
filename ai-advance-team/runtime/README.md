@@ -12,12 +12,21 @@ This package is isolated from the CEDARS API and dashboard. It has its own depen
 - Eve durable agent runtime with a coordinating Commander.
 - Five independently prompted specialist subagents: Security & Compliance, Repository & CI, Runtime & Database, Independent QA, and Release Governance.
 - Model-backed reasoning through the Vercel AI Gateway.
-- Per-session input/output/cost budgets and session timeouts for the Commander and every specialist.
+- Per-session input/output/cost budgets and session timeouts for the Commander and every specialist. A hard global concurrent-subagent cap is not yet enforced and remains a gate before external connectors are enabled.
 - Built-in agent-copy/tool capability disabled for every role; no custom tools, external connections, schedules, or sandbox extensions are mounted.
 - Authenticated HTTP channel using Vercel OIDC and local development authentication.
 - Explicit Production boot guard: the runtime refuses to start when VERCEL_ENV=production.
 - Isolated Node.js package and dedicated GitHub Actions workflow for tests and Eve compilation.
 - Existing deterministic orchestration harness retained for fail-closed adapter and governance-boundary tests.
+
+## Separate Vercel Preview project
+
+- Project: `cedars-ai-advance-team`
+- Project ID: `prj_lks88p0P4VSUs1sWRZWpRlAtYD3g`
+- Root directory: `ai-advance-team/runtime`
+- Framework: Eve; team OIDC enabled; Preview deployments enabled.
+- Git auto-deployment is not connected; deployments must be explicitly created for a reviewed Preview commit.
+- No deployment exists yet. Do not treat project creation as runtime deployment or runtime verification.
 
 ## What the agents can and cannot do today
 
