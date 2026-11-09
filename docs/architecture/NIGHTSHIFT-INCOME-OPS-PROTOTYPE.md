@@ -1,81 +1,51 @@
-# CEDARS NIGHTSHIFT AI — Prototype 001
+# CEDARS 360° AI Computer Grid Manager — Experiment 001
 
 ## Purpose
 
-Provide a one-page cloud operations control surface for productive AI work, customer delivery, independently evidenced external receipts, operating costs, and governance. The initial performance objective is a **$100/day revenue target**. This is a target only; it is not a forecast, guarantee, or current operating result.
+A lightweight, one-page Preview control surface for viewing the computer as a set of potential productive resources and distinguishing local execution from cloud execution. The initial business objective is a **$100/day target**, not a forecast, guarantee, or current result.
 
-## Verified repository baseline
+## Operating modes
 
-The existing CEDARS API already models customer Grid Tasks, buyer acceptance, worker desired state, approval requests, and audit logs. Its documented behavior is explicit: Grid Tasks are manually administered work orders; worker execution is not connected; task acceptance is not payment; settlement is `NOT_RECORDED`; and there is no payment intake, member balance, payout, or withdrawal endpoint.
+### Local computer — Windows running
 
-The Nightshift page therefore does not invent revenue from task values, accepted work, invoices, grants, internal transfers, investments, or treasury observations.
+A trusted local agent would be required to inspect hardware and software details such as battery state, CPU, RAM, storage, keyboard/input devices, graphics, network, operating system, installed applications, and peripherals. A browser page alone cannot reliably enumerate or control all of these resources.
 
-## Prototype scope
+### Cloud computer — Windows fully shut down
 
-- Static one-page route: `/nightshift`.
-- Shows the $100/day target and unavailable (not fabricated) revenue, cost, net, and target-attainment metrics.
-- Shows six proposed worker roles as NOT CONNECTED and execution DISABLED.
-- Shows an empty customer-work pipeline and audit feed until authenticated source records exist.
-- Offers read-only `GET /api/health` and `GET /api/ready` diagnostics.
-- Exports a static evidence checklist; it does not export customer data.
-- No browser storage, payment integration, worker runtime, job queue, AI model provider, customer messaging, external account credentials, or database writes.
+A separate cloud runtime can continue approved work while the user's PC is fully shut down. The local PC does not compute while shut down; the cloud service does. This requires a deployed cloud worker, durable queue/scheduler, approved task definitions, authentication, secrets isolation, budget caps, monitoring, and an emergency stop. None is connected by this experiment.
 
-## Revenue evidence and recognition
+## Resource inventory
 
-The eventual reporting layer may record an externally completed customer payment as evidence only. Recognition requires all of the following:
+The page displays twelve conceptual grids: battery and power; CPU/processing; RAM/memory; storage; keyboard/input; display/graphics; network; installed applications; operating system; peripherals/hardware; cloud compute; and AI manager/agents.
 
-1. A real customer and agreed scope.
-2. A unique invoice or work-order reference.
-3. Delivery evidence and customer acceptance where applicable.
-4. External receipt evidence from an independently verifiable source.
-5. Reconciliation by an authorized reviewer, including fees, refunds, reversals, disputes, currency, and timestamp.
-6. An append-only audit event identifying the evidence source, verifier, decision, and correction history.
+All inventory states are explicitly marked as requiring a local sensor, local inventory, or a future cloud deployment. The page does not claim to have scanned the user's computer or installed software.
 
-A quote, prospect, signed scope, invoice, accepted task, unconfirmed receipt, grant, donation, internal transfer, investment, or treasury observation is not earned customer revenue. Revenue must not be counted twice. Reversals must be linked to the original evidence and reflected in the same reporting period or a traceable adjustment.
+## Income and costs
 
-## Cost and net result
+The $100/day figure is a target only. Revenue, costs, net result, and target progress remain unavailable until real source records exist. Customer revenue requires independently verified external receipt evidence and reconciliation. Costs require verifiable provider usage statements or invoices. Accepted work, quotations, invoices, simulated jobs, grants, internal transfers, and unconfirmed receipts are not recognized as earned customer revenue.
 
-Costs must be recorded from verifiable provider statements or usage records: AI inference, cloud compute, storage, bandwidth, third-party tools, refunds/chargebacks where applicable, and other approved direct operating expenses. Net operating result is calculated only from reconciled revenue and costs for the same period. Missing data means NOT AVAILABLE, never an assumed zero.
-
-Each worker/job requires pre-authorized per-job and aggregate daily/monthly spend ceilings. Workers must fail closed and stop or request approval when limits are reached.
-
-## Worker and approval boundaries
-
-Proposed worker roles are Opportunity Research, Sales & Proposals, Work Production, Quality & Delivery, Revenue Reconciliation, and Cost & Audit Monitor.
-
-- Workers may research public opportunities and prepare internal drafts only after runtime and data-access controls are approved.
-- Human approval is required before binding customer commitments, sending external proposals/messages, accepting terms, or publishing deliverables.
-- Worker tools must not include wallet signing, payment initiation, deposits, withdrawals, payouts, transfers, or trading.
-- Sensitive customer data must be minimized and tenant-isolated.
-- Every run needs a durable job ID, worker identity, tool/action log, input/output provenance, cost record, outcome, and retry/idempotency key.
-- A global kill switch must stop new work and revoke execution leases; safe-state changes must be audited.
-- Requesters cannot approve their own privileged actions. Independent approvers and role quorum are required for activation or spend-limit increases.
-
-## Non-negotiable CEDARS constraints
+## Safety and governance
 
 - Production FROZEN.
 - Public launch OFF.
 - Financial execution OFF.
 - NO FIAT TRANSACTIONS.
-- No production credentials or production database access in Preview.
-- No schema migration until the dedicated Preview database connection check passes and a separate migration action is authorized.
-- No deployment/promotion or spend upgrade is implied by this prototype.
+- No payment processing, wallets, deposits, withdrawals, payouts, transfers, trading, or settlement.
+- No autonomous installation, device control, external messages, customer commitments, or paid workloads.
+- All visual controls are disabled placeholders; they do not claim to operate.
+- No local device scan, database write, migration, secret access, or paid cloud resource creation.
+- Preserve CEDARS repositories, backups, project files, and databases.
 
-The system may report independently evidenced business outcomes; it must not initiate, receive, hold, route, or settle fiat funds. This page does not connect to a payment rail or wallet.
+## Requirements before activation
 
-## Delivery gates before any real overnight worker run
-
-1. Confirm current branch and Preview deployment baseline.
-2. Configure and verify isolated Preview identity and database connectivity without exposing secrets.
-3. Review and apply only approved Preview migrations; seed and verify required tables.
-4. Implement authenticated tenant-scoped opportunity, customer-scope, work-order, delivery, receipt-evidence, cost, reconciliation, and audit records.
-5. Implement a durable cloud queue/worker runtime with bounded retries, idempotency, least-privilege tools, network allowlists, secrets isolation, and emergency stop.
-6. Add independent human approvals for external communication/commitments and budget increases.
-7. Add independent receipt-evidence reconciliation and cost ingestion; test corrections, refunds, duplicate evidence, missing data, and audit immutability.
-8. Verify worker OFF by default and prove that no fiat transaction capability exists.
-9. Run security, tenant isolation, budget exhaustion, replay, failure recovery, backup/restore, and kill-switch tests in Preview.
-10. Obtain separate written governance/security/finance acceptance before any production change. Public launch remains a separate approval.
+1. Review and approve a least-privilege local agent before reading hardware/software inventory.
+2. Review cloud provider, region, pricing, budgets, and data handling before provisioning.
+3. Implement authenticated operator roles, durable task queue, isolated workers, idempotency, secrets isolation, and audit logs.
+4. Require human approval for customer commitments, external communication, software installation, and any spend-limit increase.
+5. Enforce per-task and aggregate budget ceilings, with a tested emergency stop.
+6. Independently verify external customer receipts and reconcile provider costs.
+7. Keep worker execution OFF by default and prove prohibited financial capabilities are absent.
 
 ## Current status
 
-**DESIGN-ONLY / NOT OPERATIONAL.** The page and evidence checklist are the prototype deliverable. It does not earn money or run while the user's PC is off. Cloud execution is a future integration requiring the gates above.
+**VISUAL PREVIEW ONLY / NOT OPERATIONAL.** The page does not scan the computer, control installed applications, run AI workers, continue local processing while Windows is shut down, or generate income. Cloud work during shutdown is technically possible only after a separate cloud runtime is implemented, authorized, and verified.
