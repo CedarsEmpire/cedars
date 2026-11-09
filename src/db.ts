@@ -26,6 +26,7 @@ type ControlScopeConfigRecord = {
   scopeType: string;
   scopeId: string;
   enabled: boolean;
+  controlVersion: number;
   updatedById: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -53,6 +54,8 @@ type WorkerConfigRecord = {
 type GridConfigRecord = {
   id: string;
   desiredState: "STANDBY" | "WORKING" | "MAINTENANCE";
+  authorizedGlobalControlVersion: number | null;
+  authorizedLayerControlVersion: number | null;
   updatedById: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -371,18 +374,23 @@ function createInMemoryPrisma() {
     },
     upsert: async ({ where, create, update }: {
       where: { scopeType_scopeId: { scopeType: string; scopeId: string } };
-      create: { scopeType: string; scopeId: string; enabled: boolean; updatedById?: string | null };
-      update: Partial<{ enabled: boolean; updatedById: string | null }>;
+      create: { scopeType: string; scopeId: string; enabled: boolean; controlVersion?: number; updatedById?: string | null };
+      update: Partial<{ enabled: boolean; controlVersion: number | { increment: number }; updatedById: string | null }>;
     }) => {
       const key = `${where.scopeType_scopeId.scopeType}:${where.scopeType_scopeId.scopeId}`;
       const current = controlScopeConfigs.get(key);
+      const requestedVersion = update.controlVersion;
+      const nextVersion = typeof requestedVersion === "number"
+        ? requestedVersion
+        : current ? current.controlVersion + (requestedVersion?.increment ?? 0) : 0;
       const record: ControlScopeConfigRecord = current
-        ? { ...current, enabled: update.enabled ?? current.enabled, updatedById: update.updatedById ?? current.updatedById, updatedAt: new Date() }
+        ? { ...current, enabled: update.enabled ?? current.enabled, controlVersion: nextVersion, updatedById: update.updatedById ?? current.updatedById, updatedAt: new Date() }
         : {
             id: randomUUID(),
             scopeType: create.scopeType,
             scopeId: create.scopeId,
             enabled: create.enabled,
+            controlVersion: create.controlVersion ?? 0,
             updatedById: create.updatedById ?? null,
             createdAt: new Date(),
             updatedAt: new Date()
@@ -451,14 +459,27 @@ function createInMemoryPrisma() {
     },
     upsert: async ({ where, create, update }: {
       where: { id: string };
-      create: { id: string; desiredState: GridConfigRecord["desiredState"]; updatedById?: string | null };
-      update: Partial<{ desiredState: GridConfigRecord["desiredState"]; updatedById: string | null }>;
+      create: {
+        id: string;
+        desiredState: GridConfigRecord["desiredState"];
+        authorizedGlobalControlVersion?: number | null;
+        authorizedLayerControlVersion?: number | null;
+        updatedById?: string | null;
+      };
+      update: Partial<{
+        desiredState: GridConfigRecord["desiredState"];
+        authorizedGlobalControlVersion: number | null;
+        authorizedLayerControlVersion: number | null;
+        updatedById: string | null;
+      }>;
     }) => {
       const current = gridConfigs.get(where.id);
       if (current) {
         const next: GridConfigRecord = {
           ...current,
           desiredState: update.desiredState ?? current.desiredState,
+          authorizedGlobalControlVersion: update.authorizedGlobalControlVersion ?? current.authorizedGlobalControlVersion,
+          authorizedLayerControlVersion: update.authorizedLayerControlVersion ?? current.authorizedLayerControlVersion,
           updatedById: update.updatedById ?? current.updatedById,
           updatedAt: new Date()
         };
@@ -469,6 +490,8 @@ function createInMemoryPrisma() {
       const created: GridConfigRecord = {
         id: create.id,
         desiredState: create.desiredState,
+        authorizedGlobalControlVersion: create.authorizedGlobalControlVersion ?? null,
+        authorizedLayerControlVersion: create.authorizedLayerControlVersion ?? null,
         updatedById: create.updatedById ?? null,
         createdAt: new Date(),
         updatedAt: new Date()
