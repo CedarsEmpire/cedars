@@ -44,6 +44,7 @@ export async function listModules() {
   ]);
   return flags.map((flag) => ({
     ...flag,
+    desiredEnabled: flag.enabled,
     effectiveEnabled: false,
     effectiveState: "BLOCKED",
     blockReason: !globalEnabled ? "GLOBAL_SOFTWARE_OFF" : flag.enabled ? "MODULE_GRID_ASSIGNMENT_UNVERIFIED" : "MODULE_DISABLED",
