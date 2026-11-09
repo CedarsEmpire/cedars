@@ -18,3 +18,21 @@ ALTER TABLE "control_scope_configs"
     ADD CONSTRAINT "control_scope_configs_updated_by_id_fkey"
     FOREIGN KEY ("updated_by_id") REFERENCES "users"("id")
     ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- Fail safely rather than silently deleting or superseding existing pending requests.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM "approval_requests"
+    WHERE "status" = 'PENDING'
+    GROUP BY "entity_type", "entity_id"
+    HAVING COUNT(*) > 1
+  ) THEN
+    RAISE EXCEPTION 'Duplicate pending control approvals exist; reconcile them before applying this migration.';
+  END IF;
+END $$;
+
+CREATE UNIQUE INDEX "approval_requests_one_pending_per_target_key"
+    ON "approval_requests"("entity_type", "entity_id")
+    WHERE "status" = 'PENDING';
