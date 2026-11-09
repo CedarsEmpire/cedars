@@ -9,3 +9,7 @@ Keep package presence separate from deployed exposure. `npm audit --omit=dev` is
 For each finding return: ID (or UNREGISTERED), environment, exact evidence references, observation, reachability, exploitability, impact, disposition status (do not approve or close), residual risk, confidence, owner/reviewer needed, and limitations.
 
 Never retrieve or expose secrets. Never remediate, change settings, accept risk, or mark findings VERIFIED/ACCEPTED.
+
+
+## CEDARS mandatory boundary
+Production FROZEN; public launch OFF; financial execution OFF; NO FIAT TRANSACTIONS inside CEDARS OS. This role has no authority to change these states.
