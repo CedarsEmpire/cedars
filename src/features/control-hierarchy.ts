@@ -86,12 +86,16 @@ export async function getGridParentSnapshot(gridId: string) {
   return {
     globalEnabled: globalRecord?.enabled ?? false,
     layerEnabled: layerRecord?.enabled ?? false,
-    globalUpdatedAt: globalRecord?.updatedAt.toISOString() ?? "MISSING",
-    layerUpdatedAt: layerRecord?.updatedAt.toISOString() ?? "MISSING"
+    globalControlVersion: globalRecord?.controlVersion ?? -1,
+    layerControlVersion: layerRecord?.controlVersion ?? -1
   };
 }
 
-export async function evaluateGridControl(gridId: string, desiredState: GridDesiredState, gridUpdatedAt?: Date) {
+export async function evaluateGridControl(
+  gridId: string,
+  desiredState: GridDesiredState,
+  authorization?: { globalVersion: number | null; layerVersion: number | null }
+) {
   const grid = gridCatalog.find((item) => item.id === gridId);
   if (!grid) return { effectiveState: "BLOCKED" as const, blockReason: "UNKNOWN_GRID" };
   const [globalRecord, layerRecord] = await Promise.all([
@@ -105,7 +109,11 @@ export async function evaluateGridControl(gridId: string, desiredState: GridDesi
   if (!globalRecord?.enabled) return { effectiveState: "BLOCKED" as const, blockReason: "GLOBAL_SOFTWARE_OFF" };
   if (!layerRecord?.enabled) return { effectiveState: "BLOCKED" as const, blockReason: "ECONOMIC_LAYER_OFF" };
   if (desiredState !== "WORKING") return { effectiveState: "BLOCKED" as const, blockReason: desiredState };
-  if (gridUpdatedAt && (globalRecord.updatedAt > gridUpdatedAt || layerRecord.updatedAt > gridUpdatedAt)) {
+  if (!authorization || authorization.globalVersion === null || authorization.layerVersion === null) {
+    return { effectiveState: "BLOCKED" as const, blockReason: "PARENT_AUTHORIZATION_REQUIRED" };
+  }
+  if (authorization.globalVersion !== globalRecord.controlVersion ||
+      authorization.layerVersion !== layerRecord.controlVersion) {
     return { effectiveState: "BLOCKED" as const, blockReason: "PARENT_AUTHORIZATION_CHANGED" };
   }
   return { effectiveState: "ELIGIBLE" as const, blockReason: null };
