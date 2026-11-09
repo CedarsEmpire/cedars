@@ -72,16 +72,23 @@ export async function listControlScopes() {
   });
 }
 
-export async function evaluateGridControl(gridId: string, desiredState: GridDesiredState) {
+export async function evaluateGridControl(gridId: string, desiredState: GridDesiredState, gridUpdatedAt?: Date) {
   const grid = gridCatalog.find((item) => item.id === gridId);
   if (!grid) return { effectiveState: "BLOCKED" as const, blockReason: "UNKNOWN_GRID" };
-  const [globalEnabled, layerEnabled] = await Promise.all([
-    getScopeEnabled("GLOBAL_SOFTWARE", "global"),
-    getScopeEnabled("ECONOMIC_LAYER", grid.layer)
+  const [globalRecord, layerRecord] = await Promise.all([
+    prisma.controlScopeConfig.findUnique({
+      where: { scopeType_scopeId: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global" } }
+    }),
+    prisma.controlScopeConfig.findUnique({
+      where: { scopeType_scopeId: { scopeType: "ECONOMIC_LAYER", scopeId: grid.layer } }
+    })
   ]);
-  if (!globalEnabled) return { effectiveState: "BLOCKED" as const, blockReason: "GLOBAL_SOFTWARE_OFF" };
-  if (!layerEnabled) return { effectiveState: "BLOCKED" as const, blockReason: "ECONOMIC_LAYER_OFF" };
+  if (!globalRecord?.enabled) return { effectiveState: "BLOCKED" as const, blockReason: "GLOBAL_SOFTWARE_OFF" };
+  if (!layerRecord?.enabled) return { effectiveState: "BLOCKED" as const, blockReason: "ECONOMIC_LAYER_OFF" };
   if (desiredState !== "WORKING") return { effectiveState: "BLOCKED" as const, blockReason: desiredState };
+  if (gridUpdatedAt && (globalRecord.updatedAt > gridUpdatedAt || layerRecord.updatedAt > gridUpdatedAt)) {
+    return { effectiveState: "BLOCKED" as const, blockReason: "PARENT_AUTHORIZATION_CHANGED" };
+  }
   return { effectiveState: "ELIGIBLE" as const, blockReason: null };
 }
 
