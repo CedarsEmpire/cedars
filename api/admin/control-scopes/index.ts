@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { AuthorizationError, authenticateRequest } from "../../../src/auth/authorization.js";
+import { AuthorizationError, authenticateRequest, requirePlatformAdmin } from "../../../src/auth/authorization.js";
 import { listControlScopes } from "../../../src/features/control-hierarchy.js";
 
 export default async function controlScopesHandler(request: VercelRequest, response: VercelResponse) {
@@ -9,7 +9,8 @@ export default async function controlScopesHandler(request: VercelRequest, respo
     return response.status(405).json({ error: "Method not allowed." });
   }
   try {
-    await authenticateRequest(request);
+    const actor = await authenticateRequest(request);
+    requirePlatformAdmin(actor.role);
     const scopes = await listControlScopes();
     return response.status(200).json({ scopes, production: "FROZEN", financialExecution: "OFF" });
   } catch (error) {
