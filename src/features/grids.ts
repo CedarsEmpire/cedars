@@ -70,7 +70,7 @@ export async function updateGrid(input: {
       scope: "GRID_WORKING",
       entityType: "GRID_CONFIG",
       entityId: input.gridId,
-      expectedState: { desiredState: currentState, ...(await getGridParentSnapshot(input.gridId)) },
+      expectedState: { desiredState: currentState, gridAuthorizationGlobalVersion: current?.authorizedGlobalControlVersion ?? -1, gridAuthorizationLayerVersion: current?.authorizedLayerControlVersion ?? -1, ...(await getGridParentSnapshot(input.gridId)) },
       proposedState: { desiredState: input.desiredState },
       reason: input.reason
     });
