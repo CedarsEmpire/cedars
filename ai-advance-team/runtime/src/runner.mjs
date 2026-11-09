@@ -6,7 +6,7 @@ const MAX_RESULT_LENGTH = 12000;
 const DEFAULT_TIMEOUT_MS = 10000;
 const MAX_CONCURRENCY = 3;
 const SECRET_PATTERNS = [
-  /(postgres(?:ql)?:\/\/[^\s:@/]+:[^\s@/]+@[^\s]+)/gi,
+  /(?:postgres(?:ql)?:\/\/[^\s:@/]+:[^\s@/]+@[^\s]+)/gi,
   /(\b(?:password|passwd|secret|token|api[_-]?key)\b\s*[:=]\s*)[^\s,;]+/gi,
   /(Bearer\s+)[A-Za-z0-9._~+/-]+=*/gi
 ];
