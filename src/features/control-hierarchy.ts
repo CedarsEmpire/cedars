@@ -144,7 +144,7 @@ export async function updateControlScope(input: {
       scope: input.scopeType === "GLOBAL_SOFTWARE" ? "GLOBAL_SOFTWARE_ENABLE" : "ECONOMIC_LAYER_ENABLE",
       entityType: "CONTROL_SCOPE_CONFIG",
       entityId: id,
-      expectedState: { enabled: currentEnabled },
+      expectedState: { enabled: currentEnabled, controlVersion: current?.controlVersion ?? -1 },
       proposedState: { enabled: true },
       reason: input.reason
     });
@@ -160,7 +160,7 @@ export async function updateControlScope(input: {
     const config = await transaction.controlScopeConfig.upsert({
       where: { scopeType_scopeId: { scopeType: input.scopeType, scopeId: input.scopeId } },
       create: { scopeType: input.scopeType, scopeId: input.scopeId, enabled: input.enabled, updatedById: actor.id },
-      update: { enabled: input.enabled, updatedById: actor.id }
+      update: { enabled: input.enabled, controlVersion: { increment: 1 }, updatedById: actor.id }
     });
     await transaction.auditLog.create({
       data: {
