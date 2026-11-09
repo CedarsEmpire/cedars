@@ -6,6 +6,7 @@ import { gridCatalog } from "./grid-catalog.js";
 import { moduleNames } from "./module-catalog.js";
 import { workerCatalog } from "./worker-catalog.js";
 import { requestControlApproval } from "./approvals.js";
+import { getGlobalSoftwareEnabled } from "./control-hierarchy.js";
 
 export { moduleNames } from "./module-catalog.js";
 
@@ -35,8 +36,16 @@ export function assertModuleUpdateAllowed(role: Role, moduleName: string, enable
 }
 
 export async function listModules() {
-  const flags = await prisma.featureFlag.findMany({ orderBy: { moduleName: "asc" } });
-  return flags;
+  const [flags, globalEnabled] = await Promise.all([
+    prisma.featureFlag.findMany({ orderBy: { moduleName: "asc" } }),
+    getGlobalSoftwareEnabled()
+  ]);
+  return flags.map((flag) => ({
+    ...flag,
+    effectiveEnabled: flag.enabled && globalEnabled,
+    effectiveState: flag.enabled && globalEnabled ? "ELIGIBLE" : "BLOCKED",
+    blockReason: !globalEnabled ? "GLOBAL_SOFTWARE_OFF" : flag.enabled ? null : "MODULE_DISABLED"
+  }));
 }
 
 export async function getOperationsSummary() {
