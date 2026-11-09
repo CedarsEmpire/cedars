@@ -40,6 +40,10 @@ export function parseControlScopeKey(value: string) {
   return { scopeType, scopeId };
 }
 
+export async function getGlobalSoftwareEnabled() {
+  return getScopeEnabled("GLOBAL_SOFTWARE", "global");
+}
+
 async function getScopeEnabled(scopeType: string, scopeId: string) {
   assertControlScope(scopeType, scopeId);
   const record = await prisma.controlScopeConfig.findUnique({
