@@ -12,7 +12,7 @@ export default async function controlScopesHandler(request: VercelRequest, respo
     const actor = await authenticateRequest(request);
     requirePlatformAdmin(actor.role);
     const scopes = await listControlScopes();
-    return response.status(200).json({ scopes, production: "FROZEN", financialExecution: "OFF" });
+    return response.status(200).json({ scopes });
   } catch (error) {
     if (error instanceof AuthorizationError) return response.status(error.statusCode).json({ error: error.message });
     console.error("Unable to read control hierarchy", error);
