@@ -73,7 +73,7 @@ export async function requestControlApproval(input: {
   actorSubject: string;
   actorRole: Role;
   scope: string;
-  entityType: "FEATURE_FLAG" | "WORKER_CONFIG" | "GRID_CONFIG";
+  entityType: "FEATURE_FLAG" | "WORKER_CONFIG" | "GRID_CONFIG" | "CONTROL_SCOPE_CONFIG";
   entityId: string;
   expectedState: Record<string, string | number | boolean>;
   proposedState: Record<string, string | number | boolean>;
@@ -147,6 +147,18 @@ async function getCurrentState(
     const grid = await transaction.gridConfig.findUnique({ where: { id: request.entityId } });
     return { desiredState: grid?.desiredState ?? "STANDBY" };
   }
+  if (request.entityType === "CONTROL_SCOPE_CONFIG") {
+    const separator = request.entityId.indexOf(":");
+    if (separator < 1) return null;
+    const scopeType = request.entityId.slice(0, separator);
+    const scopeId = request.entityId.slice(separator + 1);
+    if (!((scopeType === "GLOBAL_SOFTWARE" && scopeId === "global") ||
+      (scopeType === "ECONOMIC_LAYER" && ["CEDARS CLOUD", "CEDARS UNDERGROUND", "CEDARS EARTH", "CEDARS HUMAN ACTIVITIES"].includes(scopeId)))) return null;
+    const config = await transaction.controlScopeConfig.findUnique({
+      where: { scopeType_scopeId: { scopeType, scopeId } }
+    });
+    return { enabled: config?.enabled ?? false };
+  }
   return null;
 }
 
@@ -198,6 +210,21 @@ async function applyProposedState(
       where: { id: request.entityId },
       create: { id: request.entityId, desiredState: proposed.desiredState, updatedById: actorId },
       update: { desiredState: proposed.desiredState, updatedById: actorId }
+    });
+    return;
+  }
+  if (request.entityType === "CONTROL_SCOPE_CONFIG" && typeof proposed.enabled === "boolean") {
+    const separator = request.entityId.indexOf(":");
+    if (separator < 1) throw new ApprovalWorkflowError(409, "Invalid control scope target.");
+    const scopeType = request.entityId.slice(0, separator);
+    const scopeId = request.entityId.slice(separator + 1);
+    const validScope = (scopeType === "GLOBAL_SOFTWARE" && scopeId === "global") ||
+      (scopeType === "ECONOMIC_LAYER" && ["CEDARS CLOUD", "CEDARS UNDERGROUND", "CEDARS EARTH", "CEDARS HUMAN ACTIVITIES"].includes(scopeId));
+    if (!validScope) throw new ApprovalWorkflowError(409, "Control scope target is not in the canonical hierarchy.");
+    await transaction.controlScopeConfig.upsert({
+      where: { scopeType_scopeId: { scopeType, scopeId } },
+      create: { scopeType, scopeId, enabled: proposed.enabled, updatedById: actorId },
+      update: { enabled: proposed.enabled, updatedById: actorId }
     });
     return;
   }
