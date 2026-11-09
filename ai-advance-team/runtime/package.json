@@ -1,14 +1,22 @@
 {
   "name": "@cedars/ai-advance-team-runtime",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Isolated, read-only orchestration runtime for the CEDARS AI Advance Team",
+  "description": "Isolated Preview-only AI runtime for the CEDARS AI Advance Team",
   "scripts": {
+    "dev": "eve dev",
+    "build": "eve build",
+    "start": "eve start",
     "test": "node --test",
     "self-check": "node src/cli.mjs --self-check"
   },
+  "dependencies": {
+    "ai": "^6.0.0",
+    "eve": "1.0.0-rc.6",
+    "zod": "^4.0.0"
+  },
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   }
 }
