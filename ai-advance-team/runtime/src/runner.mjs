@@ -14,7 +14,7 @@ const SECRET_PATTERNS = [
 function redact(value) {
   let output = typeof value === "string" ? value : JSON.stringify(value);
   for (const pattern of SECRET_PATTERNS) {
-    output = output.replace(pattern, (_match, prefix) => prefix ? `${prefix}[REDACTED]` : "[REDACTED]");
+    output = output.replace(pattern, (_match, prefix) => typeof prefix === "string" ? `${prefix}[REDACTED]` : "[REDACTED]");
   }
   return output.slice(0, MAX_RESULT_LENGTH);
 }
