@@ -28,7 +28,7 @@ export async function listGrids() {
   return Promise.all(gridCatalog.map(async (grid) => {
     const config = configById.get(grid.id);
     const desiredState = (config?.desiredState ?? "STANDBY") as GridDesiredState;
-    const control = await evaluateGridControl(grid.id, desiredState, config?.updatedAt);
+    const control = await evaluateGridControl(grid.id, desiredState, { globalVersion: config?.authorizedGlobalControlVersion ?? null, layerVersion: config?.authorizedLayerControlVersion ?? null });
     return {
       ...grid,
       dependencies: grid.dependsOn.map((id) => ({
@@ -59,7 +59,7 @@ export async function updateGrid(input: {
   const runtimeMode = getRuntimeMode();
   const current = await prisma.gridConfig.findUnique({ where: { id: input.gridId } });
   const currentState = current?.desiredState ?? "STANDBY";
-  const currentControl = await evaluateGridControl(input.gridId, currentState, current?.updatedAt);
+  const currentControl = await evaluateGridControl(input.gridId, currentState, { globalVersion: current?.authorizedGlobalControlVersion ?? null, layerVersion: current?.authorizedLayerControlVersion ?? null });
   if (input.desiredState === "WORKING" &&
       (currentState !== "WORKING" || currentControl.blockReason === "PARENT_AUTHORIZATION_CHANGED")) {
     const approval = await requestControlApproval({
@@ -106,7 +106,7 @@ export async function updateGrid(input: {
       }
     });
 
-    const control = await evaluateGridControl(input.gridId, config.desiredState as GridDesiredState, config.updatedAt);
+    const control = await evaluateGridControl(input.gridId, config.desiredState as GridDesiredState, { globalVersion: config.authorizedGlobalControlVersion, layerVersion: config.authorizedLayerControlVersion });
     return {
       ...grid,
       dependencies: grid.dependsOn.map((id) => ({
