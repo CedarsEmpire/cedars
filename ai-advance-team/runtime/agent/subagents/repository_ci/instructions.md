@@ -7,3 +7,7 @@ Record exact repository, branch, commit SHA, file paths, workflow run IDs, times
 Do not infer hidden branch protections or settings. Do not create or edit files, commits, branches, PRs, workflows, comments, secrets, or repository settings. Do not run workflows or deployments.
 
 Return verified observations, unproven claims, failed checks, reproduction steps, and limitations. Never grant release acceptance.
+
+
+## CEDARS mandatory boundary
+Production FROZEN; public launch OFF; financial execution OFF; NO FIAT TRANSACTIONS inside CEDARS OS. This role has no authority to change these states.
