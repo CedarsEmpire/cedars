@@ -157,7 +157,7 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         print("[GULUDEK]", fmt % args)
 
-    def headers(self, content_type="application/json; charset=utf-8"):
+    def send_security_headers(self, content_type="application/json; charset=utf-8"):
         self.send_header("Content-Type", content_type)
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
@@ -173,7 +173,7 @@ class Handler(BaseHTTPRequestHandler):
     def send_json(self, code: int, payload: dict):
         body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
         self.send_response(code)
-        self.headers()
+        self.send_security_headers()
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -186,7 +186,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_error(500, "GULUDEK page file is missing")
                 return
             self.send_response(200)
-            self.headers("text/html; charset=utf-8")
+            self.send_security_headers("text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
