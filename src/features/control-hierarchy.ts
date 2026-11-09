@@ -72,6 +72,25 @@ export async function listControlScopes() {
   });
 }
 
+export async function getGridParentSnapshot(gridId: string) {
+  const grid = gridCatalog.find((item) => item.id === gridId);
+  if (!grid) throw new Error("Grid is not in the supported catalog.");
+  const [globalRecord, layerRecord] = await Promise.all([
+    prisma.controlScopeConfig.findUnique({
+      where: { scopeType_scopeId: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global" } }
+    }),
+    prisma.controlScopeConfig.findUnique({
+      where: { scopeType_scopeId: { scopeType: "ECONOMIC_LAYER", scopeId: grid.layer } }
+    })
+  ]);
+  return {
+    globalEnabled: globalRecord?.enabled ?? false,
+    layerEnabled: layerRecord?.enabled ?? false,
+    globalUpdatedAt: globalRecord?.updatedAt.toISOString() ?? "MISSING",
+    layerUpdatedAt: layerRecord?.updatedAt.toISOString() ?? "MISSING"
+  };
+}
+
 export async function evaluateGridControl(gridId: string, desiredState: GridDesiredState, gridUpdatedAt?: Date) {
   const grid = gridCatalog.find((item) => item.id === gridId);
   if (!grid) return { effectiveState: "BLOCKED" as const, blockReason: "UNKNOWN_GRID" };
