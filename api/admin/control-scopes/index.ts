@@ -1,0 +1,20 @@
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { AuthorizationError, authenticateRequest } from "../../../src/auth/authorization.js";
+import { listControlScopes } from "../../../src/features/control-hierarchy.js";
+
+export default async function controlScopesHandler(request: VercelRequest, response: VercelResponse) {
+  response.setHeader("Cache-Control", "private, no-store");
+  if (request.method !== "GET") {
+    response.setHeader("Allow", "GET");
+    return response.status(405).json({ error: "Method not allowed." });
+  }
+  try {
+    await authenticateRequest(request);
+    const scopes = await listControlScopes();
+    return response.status(200).json({ scopes, production: "FROZEN", financialExecution: "OFF" });
+  } catch (error) {
+    if (error instanceof AuthorizationError) return response.status(error.statusCode).json({ error: error.message });
+    console.error("Unable to read control hierarchy", error);
+    return response.status(503).json({ error: "Control hierarchy is temporarily unavailable." });
+  }
+}
