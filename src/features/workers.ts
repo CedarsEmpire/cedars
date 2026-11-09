@@ -5,6 +5,7 @@ import { prisma } from "../db.js";
 import { workerCatalog } from "./worker-catalog.js";
 import { getRuntimeMode } from "./runtime-mode.js";
 import { requestControlApproval } from "./approvals.js";
+import { getGlobalSoftwareEnabled } from "./control-hierarchy.js";
 
 export const workerIdSchema = z.string().refine(
   (value) => workerCatalog.some((worker) => worker.id === value),
@@ -27,6 +28,7 @@ export async function listWorkers() {
   const configById = new Map(configs.map((config) => [config.id, config]));
   const runtimeMode = getRuntimeMode();
 
+  const globalEnabled = await getGlobalSoftwareEnabled();
   return workerCatalog.map((worker) => {
     const config = configById.get(worker.id);
     const enabled = config?.enabled ?? false;
@@ -35,6 +37,8 @@ export async function listWorkers() {
       enabled,
       desiredInstances: config?.desiredInstances ?? 1,
       configured: Boolean(config),
+      effectiveState: "BLOCKED" as const,
+      blockReason: !globalEnabled ? "GLOBAL_SOFTWARE_OFF" : "WORKER_GRID_ASSIGNMENT_UNVERIFIED",
       runtimeMode,
       runtimeStatus: runtimeMode === "SIMULATOR"
         ? enabled ? "SIMULATED_RUNNING" : "SIMULATED_STOPPED"
