@@ -12,7 +12,7 @@
     "self-check": "node src/cli.mjs --self-check"
   },
   "dependencies": {
-    "ai": "^6.0.0",
+    "ai": "^7.0.137",
     "eve": "1.0.0-rc.6",
     "zod": "^4.0.0"
   },
