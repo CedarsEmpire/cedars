@@ -65,8 +65,9 @@ model ControlScopeConfig {
   id          String   @id @default(uuid()) @db.Uuid
   scopeType   String   @map("scope_type") @db.VarChar(40)
   scopeId     String   @map("scope_id") @db.VarChar(100)
-  enabled     Boolean  @default(false)
-  updatedById String?  @map("updated_by_id") @db.Uuid
+  enabled       Boolean  @default(false)
+  controlVersion Int     @default(0) @map("control_version")
+  updatedById   String?  @map("updated_by_id") @db.Uuid
   updatedBy   User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -144,7 +145,9 @@ model WorkerConfig {
 
 model GridConfig {
   id            String   @id @db.VarChar(60)
-  desiredState  String   @default("STANDBY") @map("desired_state") @db.VarChar(20)
+  desiredState                 String   @default("STANDBY") @map("desired_state") @db.VarChar(20)
+  authorizedGlobalControlVersion Int?    @map("authorized_global_control_version")
+  authorizedLayerControlVersion  Int?    @map("authorized_layer_control_version")
   updatedById   String?  @map("updated_by_id") @db.Uuid
   updatedBy     User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
   createdAt     DateTime @default(now()) @map("created_at")
