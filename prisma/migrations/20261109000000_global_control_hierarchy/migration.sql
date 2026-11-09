@@ -1,9 +1,7 @@
--- Serialize pending-request creation while validating the unique target invariant.
-LOCK TABLE "approval_requests" IN SHARE ROW EXCLUSIVE MODE;
-
--- Fail safely rather than silently deleting or superseding existing pending requests.
-DO $$
+-- Lock, validate and create the partial unique index in one atomic statement.
+DO $
 BEGIN
+  LOCK TABLE "approval_requests" IN SHARE ROW EXCLUSIVE MODE;
   IF EXISTS (
     SELECT 1
     FROM "approval_requests"
@@ -13,7 +11,8 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Duplicate pending control approvals exist; reconcile them before applying this migration.';
   END IF;
-END $$;
+  EXECUTE 'CREATE UNIQUE INDEX "approval_requests_one_pending_per_target_key" ON "approval_requests"("entity_type", "entity_id") WHERE "status" = ''PENDING''';
+END $;
 
 CREATE TABLE "control_scope_configs" (
     "id" UUID NOT NULL,
@@ -47,10 +46,6 @@ ALTER TABLE "control_scope_configs"
     ADD CONSTRAINT "control_scope_configs_updated_by_id_fkey"
     FOREIGN KEY ("updated_by_id") REFERENCES "users"("id")
     ON DELETE SET NULL ON UPDATE CASCADE;
-
-CREATE UNIQUE INDEX "approval_requests_one_pending_per_target_key"
-    ON "approval_requests"("entity_type", "entity_id")
-    WHERE "status" = 'PENDING';
 
 ALTER TABLE "control_scope_configs"
     ADD COLUMN "control_version" INTEGER NOT NULL DEFAULT 0;
