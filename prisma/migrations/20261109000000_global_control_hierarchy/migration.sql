@@ -1,5 +1,5 @@
 -- Lock, validate and create the partial unique index in one atomic statement.
-DO $
+DO $$
 BEGIN
   LOCK TABLE "approval_requests" IN SHARE ROW EXCLUSIVE MODE;
   IF EXISTS (
@@ -12,7 +12,7 @@ BEGIN
     RAISE EXCEPTION 'Duplicate pending control approvals exist; reconcile them before applying this migration.';
   END IF;
   EXECUTE 'CREATE UNIQUE INDEX "approval_requests_one_pending_per_target_key" ON "approval_requests"("entity_type", "entity_id") WHERE "status" = ''PENDING''';
-END $;
+END $$;
 
 CREATE TABLE "control_scope_configs" (
     "id" UUID NOT NULL,
