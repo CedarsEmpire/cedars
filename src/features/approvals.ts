@@ -2,6 +2,7 @@ import { ApprovalDecisionType, ApprovalStatus, Prisma, Role } from "@prisma/clie
 import { z } from "zod";
 import { AuthorizationError } from "../auth/authorization.js";
 import { prisma } from "../db.js";
+import { gridCatalog } from "./grid-catalog.js";
 
 export const approvalDecisionSchema = z.object({
   decision: z.enum(["APPROVE", "REJECT"]),
@@ -152,7 +153,23 @@ async function getCurrentState(
   }
   if (request.entityType === "GRID_CONFIG") {
     const grid = await transaction.gridConfig.findUnique({ where: { id: request.entityId } });
-    return { desiredState: grid?.desiredState ?? "STANDBY" };
+    const catalogEntry = gridCatalog.find((item) => item.id === request.entityId);
+    if (!catalogEntry) return null;
+    const [globalControl, layerControl] = await Promise.all([
+      transaction.controlScopeConfig.findUnique({
+        where: { scopeType_scopeId: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global" } }
+      }),
+      transaction.controlScopeConfig.findUnique({
+        where: { scopeType_scopeId: { scopeType: "ECONOMIC_LAYER", scopeId: catalogEntry.layer } }
+      })
+    ]);
+    return {
+      desiredState: grid?.desiredState ?? "STANDBY",
+      globalEnabled: globalControl?.enabled ?? false,
+      layerEnabled: layerControl?.enabled ?? false,
+      globalUpdatedAt: globalControl?.updatedAt.toISOString() ?? "MISSING",
+      layerUpdatedAt: layerControl?.updatedAt.toISOString() ?? "MISSING"
+    };
   }
   if (request.entityType === "CONTROL_SCOPE_CONFIG") {
     const separator = request.entityId.indexOf(":");
