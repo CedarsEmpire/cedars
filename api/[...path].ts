@@ -22,7 +22,7 @@ export default async function consolidatedApiHandler(request: VercelRequest, res
   const route = resolveConsolidatedApiRoute(pathname);
   if (!route) return response.status(404).json({ error: "API route not found." });
 
-  const segments = pathname.replace(/\\/+$/, "").split("/");
+  const segments = pathname.replace(/\/+$/, "").split("/");
   if (route === "/api/admin/approvals/:approval") {
     request.query = { ...request.query, approval: segments[4] };
   } else if (route === "/api/tasks/:task") {

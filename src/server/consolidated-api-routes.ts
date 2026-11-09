@@ -15,7 +15,7 @@ export const consolidatedApiRoutes = {
 export type ConsolidatedApiRoute = keyof typeof consolidatedApiRoutes;
 
 export function resolveConsolidatedApiRoute(pathname: string): ConsolidatedApiRoute | undefined {
-  const normalized = pathname.length > 1 ? pathname.replace(/\\/+$/, "") : pathname;
+  const normalized = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
   if (Object.prototype.hasOwnProperty.call(consolidatedApiRoutes, normalized)) {
     return normalized as ConsolidatedApiRoute;
   }
