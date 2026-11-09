@@ -5,6 +5,7 @@ import { prisma } from "../db.js";
 import { gridCatalog, gridIds, type GridDesiredState } from "./grid-catalog.js";
 import { getRuntimeMode } from "./runtime-mode.js";
 import { requestControlApproval } from "./approvals.js";
+import { evaluateGridControl } from "./control-hierarchy.js";
 
 export const gridIdSchema = z.enum(gridIds);
 export const gridDesiredStateSchema = z.enum(["STANDBY", "WORKING", "MAINTENANCE"]);
@@ -24,9 +25,10 @@ export async function listGrids() {
   const configById = new Map(configs.map((config) => [config.id, config]));
   const runtimeMode = getRuntimeMode();
 
-  return gridCatalog.map((grid) => {
+  return Promise.all(gridCatalog.map(async (grid) => {
     const config = configById.get(grid.id);
     const desiredState = (config?.desiredState ?? "STANDBY") as GridDesiredState;
+    const control = await evaluateGridControl(grid.id, desiredState);
     return {
       ...grid,
       dependencies: grid.dependsOn.map((id) => ({
@@ -34,12 +36,14 @@ export async function listGrids() {
         name: gridCatalog.find((dependency) => dependency.id === id)?.name ?? id
       })),
       desiredState,
+      effectiveState: control.effectiveState,
+      blockReason: control.blockReason,
       configured: Boolean(config),
       runtimeMode,
       runtimeStatus: runtimeMode === "SIMULATOR" ? `SIMULATED_${desiredState}` : "NOT_CONNECTED",
       integrationStatus: runtimeMode === "SIMULATOR" ? "SIMULATOR" : "NOT_CONFIGURED"
     };
-  });
+  }));
 }
 
 export async function updateGrid(input: {
@@ -100,6 +104,7 @@ export async function updateGrid(input: {
       }
     });
 
+    const control = await evaluateGridControl(input.gridId, config.desiredState as GridDesiredState);
     return {
       ...grid,
       dependencies: grid.dependsOn.map((id) => ({
@@ -107,6 +112,8 @@ export async function updateGrid(input: {
         name: gridCatalog.find((dependency) => dependency.id === id)?.name ?? id
       })),
       desiredState: config.desiredState as GridDesiredState,
+      effectiveState: control.effectiveState,
+      blockReason: control.blockReason,
       configured: true,
       runtimeMode,
       runtimeStatus,
