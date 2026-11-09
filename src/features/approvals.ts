@@ -165,6 +165,8 @@ async function getCurrentState(
     ]);
     return {
       desiredState: grid?.desiredState ?? "STANDBY",
+      gridAuthorizationGlobalVersion: grid?.authorizedGlobalControlVersion ?? -1,
+      gridAuthorizationLayerVersion: grid?.authorizedLayerControlVersion ?? -1,
       globalEnabled: globalControl?.enabled ?? false,
       layerEnabled: layerControl?.enabled ?? false,
       globalControlVersion: globalControl?.controlVersion ?? -1,
