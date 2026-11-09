@@ -2,6 +2,8 @@ name: AI Advance Team Runtime Verification
 
 on:
   pull_request:
+    branches:
+      - preview/hybrid-dashboard-prototype
     paths:
       - "ai-advance-team/runtime/**"
       - ".github/workflows/ai-advance-team-runtime.yml"
@@ -20,21 +22,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  runtime-tests:
-    name: Read-only runtime tests
+  runtime:
+    name: Build and verify isolated Preview agent runtime
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 12
     defaults:
       run:
         working-directory: ai-advance-team/runtime
     steps:
-      - name: Checkout
+      - name: Check out reviewed source
         uses: actions/checkout@v4
-      - name: Set up Node.js
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
-      - name: Run isolated runtime tests
+          node-version: "24"
+
+      - name: Install isolated runtime dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run runtime and security-boundary tests
         run: npm test
-      - name: Run runtime self-check
+
+      - name: Run fail-closed orchestration self-check
         run: npm run self-check
+
+      - name: Compile Eve agent runtime
+        run: npm run build
