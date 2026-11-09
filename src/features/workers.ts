@@ -127,6 +127,8 @@ export async function updateWorker(input: {
       enabled: config.enabled,
       desiredInstances: config.desiredInstances,
       configured: true,
+      effectiveState: "BLOCKED" as const,
+      blockReason: await getGlobalSoftwareEnabled() ? "WORKER_GRID_ASSIGNMENT_UNVERIFIED" : "GLOBAL_SOFTWARE_OFF",
       runtimeMode,
       runtimeStatus
     };
