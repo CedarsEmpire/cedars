@@ -75,12 +75,16 @@ describe("M6 global and economic-layer control hierarchy", () => {
     const layer = await prisma.controlScopeConfig.findUnique({
       where: { scopeType_scopeId: { scopeType: "ECONOMIC_LAYER", scopeId: "CEDARS EARTH" } }
     });
+    await expect(evaluateGridControl("solar", "WORKING")).resolves.toMatchObject({
+      effectiveState: "BLOCKED",
+      blockReason: "PARENT_AUTHORIZATION_REQUIRED"
+    });
     await expect(evaluateGridControl("solar", "WORKING", {
       globalVersion: global?.controlVersion ?? null,
       layerVersion: layer?.controlVersion ?? null
     })).resolves.toMatchObject({
-      effectiveState: "BLOCKED",
-      blockReason: "PARENT_AUTHORIZATION_REQUIRED"
+      effectiveState: "ELIGIBLE",
+      blockReason: null
     });
   });
 
