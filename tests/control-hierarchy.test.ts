@@ -227,4 +227,39 @@ describe("M6 global and economic-layer control hierarchy", () => {
       blockReason: null
     });
   });
+
+  it("rejects a Grid approval if a parent control changes after the request", async () => {
+    const { prisma } = await import("../src/db.js");
+    const { updateGrid } = await import("../src/features/grids.js");
+    const { decideApproval } = await import("../src/features/approvals.js");
+
+    const proposal = await updateGrid({
+      actorSubject: "parent-race-requester",
+      actorRole: Role.FOUNDER,
+      gridId: "solar",
+      desiredState: "WORKING",
+      reason: "Request Grid activation"
+    });
+    expect(proposal).toMatchObject({ approvalRequired: true });
+
+    await prisma.controlScopeConfig.upsert({
+      where: { scopeType_scopeId: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global" } },
+      create: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global", enabled: true },
+      update: { enabled: true }
+    });
+    await prisma.controlScopeConfig.upsert({
+      where: { scopeType_scopeId: { scopeType: "ECONOMIC_LAYER", scopeId: "CEDARS EARTH" } },
+      create: { scopeType: "ECONOMIC_LAYER", scopeId: "CEDARS EARTH", enabled: true },
+      update: { enabled: true }
+    });
+
+    await expect(decideApproval({
+      actorSubject: "parent-race-reviewer",
+      actorRole: Role.SUPER_ADMIN,
+      requestId: proposal.approval.id,
+      decision: "APPROVE",
+      reason: "Review after parent state changed"
+    })).resolves.toMatchObject({ status: "REJECTED", stale: true, applied: false });
+    expect((await prisma.gridConfig.findUnique({ where: { id: "solar" } }))?.desiredState).toBe("STANDBY");
+  });
 });
