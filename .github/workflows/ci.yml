@@ -40,6 +40,7 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync('npm-audit-production.json', 'utf8'))"
           echo "npm audit --omit=dev exit code: ${audit_exit:-0}" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload dependency audit reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cedars-sprint1-dependency-audit
@@ -48,3 +49,53 @@ jobs:
             npm-audit-production.json
           if-no-files-found: error
           retention-days: 30
+      - name: Enforce dependency audit threshold
+        if: always()
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const reports = ['npm-audit-report.json', 'npm-audit-production.json'];
+          let critical = 0;
+          const lines = ['## Dependency audit threshold'];
+          for (const file of reports) {
+            const report = JSON.parse(fs.readFileSync(file, 'utf8'));
+            const counts = report.metadata?.vulnerabilities ?? {};
+            critical = Math.max(critical, counts.critical ?? 0);
+            lines.push(`- ${file}: critical ${counts.critical ?? 0}, high ${counts.high ?? 0}, moderate ${counts.moderate ?? 0}, low ${counts.low ?? 0}`);
+          }
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
+          if (critical > 0) process.exit(1);
+          NODE
+      - name: Publish dependency finding inventory
+        if: always()
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const report = JSON.parse(fs.readFileSync('npm-audit-report.json', 'utf8'));
+          const production = JSON.parse(fs.readFileSync('npm-audit-production.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          const vulnerabilities = report.vulnerabilities ?? {};
+          const productionCounts = production.metadata?.vulnerabilities ?? {};
+          const lines = ['## Dependency finding inventory'];
+          lines.push(`Production-only audit: critical ${productionCounts.critical ?? 0}, high ${productionCounts.high ?? 0}, moderate ${productionCounts.moderate ?? 0}, low ${productionCounts.low ?? 0}`);
+          for (const [name, item] of Object.entries(production.vulnerabilities ?? {}).sort(([a], [b]) => a.localeCompare(b))) {
+            lines.push(`- PRODUCTION ${item.severity.toUpperCase()} ${name}@${item.range}; direct=${item.isDirect}; fixAvailable=${JSON.stringify(item.fixAvailable)}`);
+          }
+          const advisoryRecords = (name, seen = new Set()) => {
+            if (seen.has(name)) return [];
+            seen.add(name);
+            const item = vulnerabilities[name];
+            return (item?.via ?? []).flatMap(value =>
+              typeof value === 'string' ? advisoryRecords(value, seen) : [value]
+            );
+          };
+          for (const [name, item] of Object.entries(vulnerabilities).sort(([a], [b]) => a.localeCompare(b))) {
+            const advisories = [...new Map(advisoryRecords(name).map(value => [value.url, `${value.title} (${value.url})`])).values()];
+            const installed = (item.nodes ?? []).map(path => `${path}@${lock.packages?.[path]?.version ?? 'unknown'}`).join(',');
+            const entry = `- ${item.severity.toUpperCase()} ${name}@${item.range}; direct=${item.isDirect}; installed=${installed}; fixAvailable=${JSON.stringify(item.fixAvailable)}; advisories=${advisories.join('; ') || 'UNRESOLVED: security review required'}`;
+            lines.push(entry);
+          }
+          const output = lines.join('\n') + '\n';
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, output);
+          process.stdout.write(output);
+          NODE
