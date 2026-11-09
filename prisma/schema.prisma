@@ -40,6 +40,7 @@ model User {
   flagsUpdated   FeatureFlag[]
   workersUpdated WorkerConfig[]
   gridsUpdated   GridConfig[]
+  controlScopesUpdated ControlScopeConfig[]
   gridTasksCreated GridTask[] @relation("GridTaskBuyer")
   gridTasksAccepted GridTask[] @relation("GridTaskAcceptedBy")
   approvalRequests ApprovalRequest[] @relation("ApprovalRequester")
@@ -58,6 +59,21 @@ model FeatureFlag {
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   @@map("feature_flags")
+}
+
+model ControlScopeConfig {
+  id          String   @id @default(uuid()) @db.Uuid
+  scopeType   String   @map("scope_type") @db.VarChar(40)
+  scopeId     String   @map("scope_id") @db.VarChar(100)
+  enabled     Boolean  @default(false)
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  updatedBy   User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([scopeType, scopeId])
+  @@index([scopeType, enabled])
+  @@map("control_scope_configs")
 }
 
 model AuditLog {
