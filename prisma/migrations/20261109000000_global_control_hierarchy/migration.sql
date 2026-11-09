@@ -36,3 +36,10 @@ END $$;
 CREATE UNIQUE INDEX "approval_requests_one_pending_per_target_key"
     ON "approval_requests"("entity_type", "entity_id")
     WHERE "status" = 'PENDING';
+
+ALTER TABLE "control_scope_configs"
+    ADD COLUMN "control_version" INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE "grid_configs"
+    ADD COLUMN "authorized_global_control_version" INTEGER,
+    ADD COLUMN "authorized_layer_control_version" INTEGER;
