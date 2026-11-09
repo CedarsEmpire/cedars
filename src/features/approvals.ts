@@ -80,7 +80,8 @@ export async function requestControlApproval(input: {
   reason: string;
 }) {
   const requiredApproverRoles = requiredControlRoles(input.actorRole);
-  return prisma.$transaction(async (transaction) => {
+  try {
+    return await prisma.$transaction(async (transaction) => {
     const pending = await transaction.approvalRequest.findMany({
       where: {
         status: ApprovalStatus.PENDING,
@@ -128,7 +129,13 @@ export async function requestControlApproval(input: {
       }
     });
     return request;
-  });
+    });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
+      throw new ApprovalWorkflowError(409, "A control change for this item is already pending review.");
+    }
+    throw error;
+  }
 }
 
 async function getCurrentState(
