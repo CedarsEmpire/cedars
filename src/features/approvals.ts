@@ -167,8 +167,8 @@ async function getCurrentState(
       desiredState: grid?.desiredState ?? "STANDBY",
       globalEnabled: globalControl?.enabled ?? false,
       layerEnabled: layerControl?.enabled ?? false,
-      globalUpdatedAt: globalControl?.updatedAt.toISOString() ?? "MISSING",
-      layerUpdatedAt: layerControl?.updatedAt.toISOString() ?? "MISSING"
+      globalControlVersion: globalControl?.controlVersion ?? -1,
+      layerControlVersion: layerControl?.controlVersion ?? -1
     };
   }
   if (request.entityType === "CONTROL_SCOPE_CONFIG") {
@@ -181,7 +181,7 @@ async function getCurrentState(
     const config = await transaction.controlScopeConfig.findUnique({
       where: { scopeType_scopeId: { scopeType, scopeId } }
     });
-    return { enabled: config?.enabled ?? false };
+    return { enabled: config?.enabled ?? false, controlVersion: config?.controlVersion ?? -1 };
   }
   return null;
 }
@@ -230,10 +230,31 @@ async function applyProposedState(
   }
   if (request.entityType === "GRID_CONFIG" &&
       (proposed.desiredState === "STANDBY" || proposed.desiredState === "WORKING" || proposed.desiredState === "MAINTENANCE")) {
+    const catalogEntry = gridCatalog.find((item) => item.id === request.entityId);
+    if (!catalogEntry) throw new ApprovalWorkflowError(409, "Grid target is not in the canonical catalogue.");
+    const [globalControl, layerControl] = await Promise.all([
+      transaction.controlScopeConfig.findUnique({
+        where: { scopeType_scopeId: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global" } }
+      }),
+      transaction.controlScopeConfig.findUnique({
+        where: { scopeType_scopeId: { scopeType: "ECONOMIC_LAYER", scopeId: catalogEntry.layer } }
+      })
+    ]);
     await transaction.gridConfig.upsert({
       where: { id: request.entityId },
-      create: { id: request.entityId, desiredState: proposed.desiredState, updatedById: actorId },
-      update: { desiredState: proposed.desiredState, updatedById: actorId }
+      create: {
+        id: request.entityId,
+        desiredState: proposed.desiredState,
+        authorizedGlobalControlVersion: globalControl?.controlVersion ?? -1,
+        authorizedLayerControlVersion: layerControl?.controlVersion ?? -1,
+        updatedById: actorId
+      },
+      update: {
+        desiredState: proposed.desiredState,
+        authorizedGlobalControlVersion: globalControl?.controlVersion ?? -1,
+        authorizedLayerControlVersion: layerControl?.controlVersion ?? -1,
+        updatedById: actorId
+      }
     });
     return;
   }
@@ -248,7 +269,7 @@ async function applyProposedState(
     await transaction.controlScopeConfig.upsert({
       where: { scopeType_scopeId: { scopeType, scopeId } },
       create: { scopeType, scopeId, enabled: proposed.enabled, updatedById: actorId },
-      update: { enabled: proposed.enabled, updatedById: actorId }
+      update: { enabled: proposed.enabled, controlVersion: { increment: 1 }, updatedById: actorId }
     });
     return;
   }
