@@ -41,6 +41,8 @@ export async function listGrids() {
       configured: Boolean(config),
       runtimeMode,
       runtimeStatus: runtimeMode === "SIMULATOR" ? `SIMULATED_${desiredState}` : "NOT_CONNECTED",
+      observedState: runtimeMode === "SIMULATOR" ? `SIMULATED_${desiredState}` : "NOT_CONNECTED",
+      verificationState: "UNVERIFIED",
       integrationStatus: runtimeMode === "SIMULATOR" ? "SIMULATOR" : "NOT_CONFIGURED"
     };
   }));
@@ -119,6 +121,8 @@ export async function updateGrid(input: {
       configured: true,
       runtimeMode,
       runtimeStatus,
+      observedState: runtimeStatus,
+      verificationState: "UNVERIFIED",
       integrationStatus
     };
   });
