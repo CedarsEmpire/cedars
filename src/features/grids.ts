@@ -63,7 +63,7 @@ export async function updateGrid(input: {
   const currentState = current?.desiredState ?? "STANDBY";
   const currentControl = await evaluateGridControl(input.gridId, currentState, { globalVersion: current?.authorizedGlobalControlVersion ?? null, layerVersion: current?.authorizedLayerControlVersion ?? null });
   if (input.desiredState === "WORKING" &&
-      (currentState !== "WORKING" || currentControl.blockReason === "PARENT_AUTHORIZATION_CHANGED")) {
+      (currentState !== "WORKING" || (currentControl.blockReason === "PARENT_AUTHORIZATION_CHANGED" || currentControl.blockReason === "PARENT_AUTHORIZATION_REQUIRED"))) {
     const approval = await requestControlApproval({
       actorSubject: input.actorSubject,
       actorRole: input.actorRole,
