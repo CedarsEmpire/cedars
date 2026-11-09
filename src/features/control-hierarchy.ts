@@ -67,7 +67,9 @@ export async function listControlScopes() {
       configured: Boolean(record),
       effectiveEnabled: scope.scopeType === "GLOBAL_SOFTWARE"
         ? (record?.enabled ?? false)
-        : (record?.enabled ?? false) && (byKey.get(scopeKey("GLOBAL_SOFTWARE", "global"))?.enabled ?? false)
+        : (record?.enabled ?? false) && (byKey.get(scopeKey("GLOBAL_SOFTWARE", "global"))?.enabled ?? false),
+      observedState: "NOT_CONNECTED",
+      verificationState: "UNVERIFIED"
     };
   });
 }
