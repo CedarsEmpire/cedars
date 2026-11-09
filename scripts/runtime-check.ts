@@ -17,8 +17,8 @@ const [{ prisma }, { default: modulesHandler }, { default: updateModuleHandler }
   import("../src/server/handlers/grids.ts"),
   import("../api/admin/grids/[grid].ts"),
   import("../api/admin/treasury.ts"),
-  import("../api/admin/approvals/index.ts"),
-  import("../api/admin/approvals/[approval].ts")
+  import("../src/server/handlers/admin-approvals.ts"),
+  import("../src/server/handlers/admin-approval-decision.ts")
 ]);
 
 const localRoleClaim = "https://cedars.local/cedars/role";
