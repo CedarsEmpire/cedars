@@ -5,7 +5,7 @@ import { prisma } from "../db.js";
 import { gridCatalog, gridIds, type GridDesiredState } from "./grid-catalog.js";
 import { getRuntimeMode } from "./runtime-mode.js";
 import { requestControlApproval } from "./approvals.js";
-import { evaluateGridControl } from "./control-hierarchy.js";
+import { evaluateGridControl, getGridParentSnapshot } from "./control-hierarchy.js";
 
 export const gridIdSchema = z.enum(gridIds);
 export const gridDesiredStateSchema = z.enum(["STANDBY", "WORKING", "MAINTENANCE"]);
@@ -68,7 +68,7 @@ export async function updateGrid(input: {
       scope: "GRID_WORKING",
       entityType: "GRID_CONFIG",
       entityId: input.gridId,
-      expectedState: { desiredState: currentState },
+      expectedState: { desiredState: currentState, ...(await getGridParentSnapshot(input.gridId)) },
       proposedState: { desiredState: input.desiredState },
       reason: input.reason
     });
