@@ -69,9 +69,18 @@ describe("M6 global and economic-layer control hierarchy", () => {
       effectiveState: "BLOCKED",
       blockReason: "STANDBY"
     });
-    await expect(evaluateGridControl("solar", "WORKING")).resolves.toMatchObject({
-      effectiveState: "ELIGIBLE",
-      blockReason: null
+    const global = await prisma.controlScopeConfig.findUnique({
+      where: { scopeType_scopeId: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global" } }
+    });
+    const layer = await prisma.controlScopeConfig.findUnique({
+      where: { scopeType_scopeId: { scopeType: "ECONOMIC_LAYER", scopeId: "CEDARS EARTH" } }
+    });
+    await expect(evaluateGridControl("solar", "WORKING", {
+      globalVersion: global?.controlVersion ?? null,
+      layerVersion: layer?.controlVersion ?? null
+    })).resolves.toMatchObject({
+      effectiveState: "BLOCKED",
+      blockReason: "PARENT_AUTHORIZATION_REQUIRED"
     });
   });
 
@@ -123,7 +132,30 @@ describe("M6 global and economic-layer control hierarchy", () => {
       create: { scopeType: "ECONOMIC_LAYER", scopeId: "CEDARS EARTH", enabled: true },
       update: { enabled: true }
     });
-    await expect(evaluateGridControl("solar", "WORKING")).resolves.toMatchObject({ effectiveState: "ELIGIBLE" });
+    const global = await prisma.controlScopeConfig.findUnique({
+      where: { scopeType_scopeId: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global" } }
+    });
+    const layer = await prisma.controlScopeConfig.findUnique({
+      where: { scopeType_scopeId: { scopeType: "ECONOMIC_LAYER", scopeId: "CEDARS EARTH" } }
+    });
+    await prisma.gridConfig.upsert({
+      where: { id: "solar" },
+      create: {
+        id: "solar",
+        desiredState: "WORKING",
+        authorizedGlobalControlVersion: global?.controlVersion ?? -1,
+        authorizedLayerControlVersion: layer?.controlVersion ?? -1
+      },
+      update: {
+        desiredState: "WORKING",
+        authorizedGlobalControlVersion: global?.controlVersion ?? -1,
+        authorizedLayerControlVersion: layer?.controlVersion ?? -1
+      }
+    });
+    await expect(evaluateGridControl("solar", "WORKING", {
+      globalVersion: global?.controlVersion ?? null,
+      layerVersion: layer?.controlVersion ?? null
+    })).resolves.toMatchObject({ effectiveState: "ELIGIBLE" });
     await updateControlScope({
       actorSubject: "global-operator",
       actorRole: Role.FOUNDER,
@@ -180,15 +212,10 @@ describe("M6 global and economic-layer control hierarchy", () => {
   it("requires fresh Grid approval after a parent control changes", async () => {
     const { prisma } = await import("../src/db.js");
     const { evaluateGridControl } = await import("../src/features/control-hierarchy.js");
+    const { updateControlScope } = await import("../src/features/control-hierarchy.js");
     const { updateGrid } = await import("../src/features/grids.js");
     const { decideApproval } = await import("../src/features/approvals.js");
 
-    await prisma.gridConfig.upsert({
-      where: { id: "solar" },
-      create: { id: "solar", desiredState: "WORKING" },
-      update: { desiredState: "WORKING" }
-    });
-    await new Promise((resolve) => setTimeout(resolve, 10));
     await prisma.controlScopeConfig.upsert({
       where: { scopeType_scopeId: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global" } },
       create: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global", enabled: true },
@@ -199,9 +226,57 @@ describe("M6 global and economic-layer control hierarchy", () => {
       create: { scopeType: "ECONOMIC_LAYER", scopeId: "CEDARS EARTH", enabled: true },
       update: { enabled: true }
     });
+    const global = await prisma.controlScopeConfig.findUnique({
+      where: { scopeType_scopeId: { scopeType: "GLOBAL_SOFTWARE", scopeId: "global" } }
+    });
+    const layer = await prisma.controlScopeConfig.findUnique({
+      where: { scopeType_scopeId: { scopeType: "ECONOMIC_LAYER", scopeId: "CEDARS EARTH" } }
+    });
+    await prisma.gridConfig.upsert({
+      where: { id: "solar" },
+      create: {
+        id: "solar",
+        desiredState: "WORKING",
+        authorizedGlobalControlVersion: global?.controlVersion ?? -1,
+        authorizedLayerControlVersion: layer?.controlVersion ?? -1
+      },
+      update: {
+        desiredState: "WORKING",
+        authorizedGlobalControlVersion: global?.controlVersion ?? -1,
+        authorizedLayerControlVersion: layer?.controlVersion ?? -1
+      }
+    });
+
+    await updateControlScope({
+      actorSubject: "global-pause-operator",
+      actorRole: Role.FOUNDER,
+      scopeType: "GLOBAL_SOFTWARE",
+      scopeId: "global",
+      enabled: false,
+      reason: "Pause before parent reauthorization"
+    });
+    const reenable = await updateControlScope({
+      actorSubject: "global-resume-requester",
+      actorRole: Role.FOUNDER,
+      scopeType: "GLOBAL_SOFTWARE",
+      scopeId: "global",
+      enabled: true,
+      reason: "Request global reauthorization"
+    });
+    expect(reenable).toMatchObject({ approvalRequired: true });
+    await decideApproval({
+      actorSubject: "global-resume-reviewer",
+      actorRole: Role.SUPER_ADMIN,
+      requestId: reenable.approval.id,
+      decision: "APPROVE",
+      reason: "Approve global reauthorization"
+    });
 
     const prior = await prisma.gridConfig.findUnique({ where: { id: "solar" } });
-    await expect(evaluateGridControl("solar", "WORKING", prior?.updatedAt)).resolves.toMatchObject({
+    await expect(evaluateGridControl("solar", "WORKING", {
+      globalVersion: prior?.authorizedGlobalControlVersion ?? null,
+      layerVersion: prior?.authorizedLayerControlVersion ?? null
+    })).resolves.toMatchObject({
       effectiveState: "BLOCKED",
       blockReason: "PARENT_AUTHORIZATION_CHANGED"
     });
@@ -222,7 +297,10 @@ describe("M6 global and economic-layer control hierarchy", () => {
       reason: "Independent Grid reauthorization"
     });
     const renewed = await prisma.gridConfig.findUnique({ where: { id: "solar" } });
-    await expect(evaluateGridControl("solar", "WORKING", renewed?.updatedAt)).resolves.toMatchObject({
+    await expect(evaluateGridControl("solar", "WORKING", {
+      globalVersion: renewed?.authorizedGlobalControlVersion ?? null,
+      layerVersion: renewed?.authorizedLayerControlVersion ?? null
+    })).resolves.toMatchObject({
       effectiveState: "ELIGIBLE",
       blockReason: null
     });
