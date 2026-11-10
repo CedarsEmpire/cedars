@@ -153,6 +153,61 @@ async function main() {
     throw new Error(`Grid Task start check failed: ${JSON.stringify(taskStart)}`);
   }
 
+  const taskDeliver = await request(`/api/tasks/${encodeURIComponent(taskId)}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${approverToken}` },
+    body: JSON.stringify({
+      action: "deliver",
+      evidence: "Smoke test delivery evidence reviewed by the independent operator.",
+      reason: "Smoke test records operator delivery"
+    })
+  });
+  if (!taskDeliver.ok || taskDeliver.status !== 200 ||
+      typeof taskDeliver.body !== "object" || taskDeliver.body === null ||
+      !("task" in taskDeliver.body) || taskDeliver.body.task.status !== "DELIVERED" ||
+      taskDeliver.body.task.settlementStatus !== "NOT_RECORDED") {
+    throw new Error(`Grid Task delivery check failed: ${JSON.stringify(taskDeliver)}`);
+  }
+
+  const taskAccept = await request(`/api/tasks/${encodeURIComponent(taskId)}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ action: "accept", reason: "Smoke test buyer accepts delivery" })
+  });
+  if (!taskAccept.ok || taskAccept.status !== 200 ||
+      typeof taskAccept.body !== "object" || taskAccept.body === null ||
+      !("task" in taskAccept.body) || taskAccept.body.task.status !== "ACCEPTED" ||
+      taskAccept.body.task.settlementStatus !== "NOT_RECORDED") {
+    throw new Error(`Grid Task buyer acceptance check failed: ${JSON.stringify(taskAccept)}`);
+  }
+
+  const cancelTask = await request("/api/tasks", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      gridId: "research",
+      title: "Smoke test cancellation work order",
+      description: "Validate cancellation of an open internal task.",
+      acceptanceCriteria: "The task can be cancelled while still open.",
+      agreedAmount: "1.00",
+      currency: "USD"
+    })
+  });
+  const cancelTaskBody = cancelTask.body as { task?: { id?: string; status?: string } };
+  if (cancelTask.status !== 201 || !cancelTaskBody.task?.id || cancelTaskBody.task.status !== "OPEN") {
+    throw new Error(`Grid Task cancellation fixture creation failed: ${JSON.stringify(cancelTask)}`);
+  }
+  const taskCancel = await request(`/api/tasks/${encodeURIComponent(cancelTaskBody.task.id)}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ action: "cancel", reason: "Smoke test cancels open task" })
+  });
+  if (!taskCancel.ok || taskCancel.status !== 200 ||
+      typeof taskCancel.body !== "object" || taskCancel.body === null ||
+      !("task" in taskCancel.body) || taskCancel.body.task.status !== "CANCELLED") {
+    throw new Error(`Grid Task cancellation check failed: ${JSON.stringify(taskCancel)}`);
+  }
+
   const gridTasksDisable = await request("/api/admin/modules/grid_tasks", {
     method: "PUT",
     headers: { Authorization: `Bearer ${token}` },
